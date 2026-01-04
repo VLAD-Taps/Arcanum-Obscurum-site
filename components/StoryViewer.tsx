@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { Story } from '../types';
 
 interface StoryViewerProps {
@@ -15,9 +15,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
   const requestRef = useRef<number>();
   const startTimeRef = useRef<number>();
 
-  const currentStory = stories[currentIndex];
+  // Safety check: Ensure the current index is valid
+  const safeIndex = Math.min(Math.max(0, currentIndex), stories.length - 1);
+  const currentStory = stories[safeIndex];
 
   useEffect(() => {
+    // If stories array is empty or invalid, close immediately to prevent crash
+    if (!currentStory) {
+      onClose();
+      return;
+    }
+
     setProgress(0);
     startTimeRef.current = Date.now();
     
@@ -39,10 +47,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [currentIndex]);
+  }, [safeIndex, stories.length]); // Depend on safeIndex
 
   const handleNext = () => {
-    if (currentIndex < stories.length - 1) {
+    if (safeIndex < stories.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
       onClose();
@@ -50,7 +58,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
   };
 
   const handlePrev = () => {
-    if (currentIndex > 0) {
+    if (safeIndex > 0) {
       setCurrentIndex(prev => prev - 1);
     } else {
       // Reset current story if at start
@@ -58,6 +66,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
       startTimeRef.current = Date.now();
     }
   };
+
+  // Render nothing or fallback if no story exists (Extra safety)
+  if (!currentStory) return null;
 
   return (
     <div className="fixed inset-0 z-[80] bg-black flex items-center justify-center animate-in fade-in duration-300">
@@ -78,7 +89,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
               <div 
                 className="h-full bg-white transition-all duration-100 ease-linear"
                 style={{ 
-                  width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' 
+                  width: idx === safeIndex ? `${progress}%` : idx < safeIndex ? '100%' : '0%' 
                 }}
               />
             </div>
@@ -88,10 +99,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
         {/* Header */}
         <div className="absolute top-4 left-0 right-0 z-20 px-4 pt-2 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full border-2 border-neon-purple p-0.5">
-               <img src={currentStory.imageUrl} className="w-full h-full rounded-full object-cover" />
+            <div className="w-8 h-8 rounded-full border-2 border-neon-purple p-0.5 overflow-hidden">
+               <img src={currentStory.imageUrl} className="w-full h-full rounded-full object-cover" alt="" />
             </div>
-            <span className="text-white font-semibold text-sm drop-shadow-md">{currentStory.title}</span>
+            <span className="text-white font-semibold text-sm drop-shadow-md truncate max-w-[150px]">{currentStory.title}</span>
             <span className="text-gray-300 text-xs drop-shadow-md">
               {new Date(currentStory.date).toLocaleDateString(undefined, { hour: '2-digit', minute:'2-digit' })}
             </span>
@@ -103,6 +114,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
 
         {/* Image Content */}
         <img 
+          key={currentStory.id} // Key forces re-render of img for animation
           src={currentStory.imageUrl} 
           alt={currentStory.title} 
           className="w-full h-full object-cover animate-in zoom-in-105 duration-[5000ms] ease-linear"
@@ -110,13 +122,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ stories, initialStoryIndex, o
 
         {/* Navigation Overlays */}
         <div className="absolute inset-0 z-10 flex">
-          <div className="w-1/3 h-full" onClick={handlePrev}></div>
-          <div className="w-2/3 h-full" onClick={handleNext}></div>
+          <div className="w-1/3 h-full cursor-pointer" onClick={handlePrev}></div>
+          <div className="w-2/3 h-full cursor-pointer" onClick={handleNext}></div>
         </div>
 
         {/* Caption Gradient */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent z-10 flex items-end p-6">
-           <p className="text-white text-lg font-medium mb-4">
+           <p className="text-white text-lg font-medium mb-4 line-clamp-2">
              Novo artefato descoberto: {currentStory.title}
            </p>
         </div>

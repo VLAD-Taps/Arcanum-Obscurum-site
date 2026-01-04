@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, MessageSquare, Image as ImageIcon, Box, Crown, Settings, Shield, Search } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -52,6 +52,8 @@ function App() {
           isSeen: false
         }));
       setStories(newStories);
+    } else {
+      setStories([]);
     }
   }, [catalog]);
 
