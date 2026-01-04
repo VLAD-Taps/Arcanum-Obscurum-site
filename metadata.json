@@ -1,0 +1,9 @@
+{
+  "name": "ARCANUM OBSCURUM",
+  "description": "Um catálogo misterioso e poderoso para registrar objetos ao redor do mundo, potencializado pela IA Gemini para análise, busca e criação.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
