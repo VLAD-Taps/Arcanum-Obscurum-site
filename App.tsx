@@ -309,39 +309,50 @@ function App() {
       />
 
       {/* Bottom Tab Bar (Red/White Theme) */}
-      <div className="fixed bottom-0 w-full bg-white dark:bg-void border-t-4 border-arcane-red py-3 px-1 flex justify-between items-center z-50 md:justify-center md:gap-6 shadow-[0_-5px_15px_rgba(220,38,38,0.1)] overflow-x-auto">
-        <NavButton 
-          active={activeTab === 'catalog'} 
-          onClick={() => setActiveTab('catalog')} 
-          icon={<LayoutGrid size={22} />} 
-          label="ACERVO" 
-        />
-        <NavButton 
-          active={activeTab === 'maps'} 
-          onClick={() => setActiveTab('maps')} 
-          icon={<Globe size={22} />} 
-          label="GLOBAL" 
-        />
-        <NavButton 
-          active={activeTab === 'search'} 
-          onClick={() => setActiveTab('search')} 
-          icon={<Search size={22} />} 
-          label="BUSCA" 
-        />
-        <div className="relative -top-8 mx-2 flex-shrink-0">
-           <button 
-             onClick={() => setActiveTab('add')}
-             className="bg-arcane-red text-white w-14 h-14 rounded flex items-center justify-center shadow-lg shadow-red-600/40 hover:scale-105 transition-transform rotate-45 border-4 border-white dark:border-void"
-           >
-             <Plus size={28} className="-rotate-45" />
-           </button>
+      <div className="fixed bottom-0 w-full bg-white dark:bg-void border-t-4 border-arcane-red py-2 px-2 z-50 shadow-[0_-5px_15px_rgba(220,38,38,0.1)]">
+        <div className="grid grid-cols-5 items-end max-w-lg mx-auto md:max-w-2xl">
+          {/* 1. Acervo */}
+          <NavButton 
+            active={activeTab === 'catalog'} 
+            onClick={() => setActiveTab('catalog')} 
+            icon={<LayoutGrid size={22} />} 
+            label="ACERVO" 
+          />
+          
+          {/* 2. Global */}
+          <NavButton 
+            active={activeTab === 'maps'} 
+            onClick={() => setActiveTab('maps')} 
+            icon={<Globe size={22} />} 
+            label="GLOBAL" 
+          />
+          
+          {/* 3. Center ADD Button */}
+          <div className="flex justify-center relative -top-6">
+             <button 
+               onClick={() => setActiveTab('add')}
+               className={`bg-arcane-red text-white w-14 h-14 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/40 hover:scale-105 transition-transform rotate-45 border-4 border-white dark:border-void ${activeTab === 'add' ? 'ring-2 ring-red-400' : ''}`}
+             >
+               <Plus size={28} className="-rotate-45" />
+             </button>
+          </div>
+
+          {/* 4. Buscas */}
+          <NavButton 
+            active={activeTab === 'search'} 
+            onClick={() => setActiveTab('search')} 
+            icon={<Search size={22} />} 
+            label="BUSCAS" 
+          />
+
+          {/* 5. Ameaças */}
+          <NavButton 
+            active={activeTab === 'threats'} 
+            onClick={() => setActiveTab('threats')} 
+            icon={<Shield size={22} />} 
+            label="AMEAÇAS" 
+          />
         </div>
-        <NavButton 
-          active={activeTab === 'threats'} 
-          onClick={() => setActiveTab('threats')} 
-          icon={<Shield size={22} />} 
-          label="AMEAÇAS" 
-        />
       </div>
     </div>
   );
@@ -350,12 +361,12 @@ function App() {
 const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-colors px-2 min-w-[50px] ${
+    className={`flex flex-col items-center justify-end gap-1 transition-colors h-12 pb-1 ${
       active ? 'text-arcane-red font-bold' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
     }`}
   >
     {icon}
-    <span className="text-[9px] font-black tracking-widest">{label}</span>
+    <span className="text-[9px] font-black tracking-widest leading-none">{label}</span>
   </button>
 );
 

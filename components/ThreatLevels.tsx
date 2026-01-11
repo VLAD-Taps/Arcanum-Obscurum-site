@@ -17,8 +17,23 @@ const ThreatLevels: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<ThreatLevel>>({});
 
   const toggleAdmin = () => {
-    setIsAdmin(!isAdmin);
-    setEditingId(null);
+    if (isAdmin) {
+      // Se já for admin, clica para sair (Logout)
+      setIsAdmin(false);
+      setEditingId(null);
+    } else {
+      // Se não for admin, pede a senha
+      // Timeout pequeno para garantir que a UI atualizou antes do prompt bloquear a thread
+      setTimeout(() => {
+        const password = window.prompt("INSIRA A CREDENCIAL DE SEGURANÇA (NÍVEL 5):");
+        
+        if (password === '411521096') {
+          setIsAdmin(true);
+        } else if (password !== null) {
+          alert("ACESSO NEGADO. Protocolo de segurança ativado.");
+        }
+      }, 50);
+    }
   };
 
   const startEdit = (level: ThreatLevel) => {
@@ -32,9 +47,9 @@ const ThreatLevels: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-6 bg-white dark:bg-void-light rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+    <div className="min-h-full p-6 bg-white dark:bg-void-light rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 relative">
       
-      <div className="flex justify-between items-center mb-8 border-b border-gray-200 dark:border-red-900/30 pb-4">
+      <div className="flex justify-between items-center mb-8 border-b border-gray-200 dark:border-red-900/30 pb-4 sticky top-0 bg-white dark:bg-void-light z-10">
         <div>
            <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
              <Skull className="text-arcane-red w-8 h-8" />
@@ -44,15 +59,16 @@ const ThreatLevels: React.FC = () => {
         </div>
 
         <button 
+          type="button"
           onClick={toggleAdmin}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all cursor-pointer relative z-20 ${
             isAdmin 
-              ? 'bg-arcane-red text-white shadow-lg shadow-red-500/30' 
-              : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              ? 'bg-arcane-red text-white shadow-lg shadow-red-500/30 hover:bg-red-700' 
+              : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'
           }`}
         >
           {isAdmin ? <Unlock size={16} /> : <Lock size={16} />}
-          {isAdmin ? 'MODO ADMIN ATIVO' : 'VISUALIZAÇÃO PÚBLICA'}
+          {isAdmin ? 'MODO ADMIN (ATIVO)' : 'ACESSAR ADMIN'}
         </button>
       </div>
 
@@ -67,24 +83,27 @@ const ThreatLevels: React.FC = () => {
             }`}
             style={{ borderLeftColor: editingId !== level.id && level.grade.includes('Especial') ? '#dc2626' : undefined }}
           >
+            {/* O botão de edição só aparece se for Admin */}
             {isAdmin && editingId !== level.id && (
               <button 
+                type="button"
                 onClick={() => startEdit(level)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-arcane-red"
+                className="absolute top-4 right-4 text-gray-400 hover:text-arcane-red p-2"
+                title="Editar Registro"
               >
                 <Edit2 size={18} />
               </button>
             )}
 
             {editingId === level.id ? (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-in fade-in">
                  <div>
                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome da Classe</label>
                    <input 
                      type="text" 
                      value={editForm.grade || ''} 
                      onChange={(e) => setEditForm({...editForm, grade: e.target.value})}
-                     className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:text-white dark:border-gray-700"
+                     className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:text-white dark:border-gray-700 focus:ring-1 focus:ring-arcane-red outline-none"
                    />
                  </div>
                  <div>
@@ -92,12 +111,25 @@ const ThreatLevels: React.FC = () => {
                    <textarea 
                      value={editForm.description || ''} 
                      onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                     className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:text-white dark:border-gray-700 h-24"
+                     className="w-full p-2 border rounded bg-white dark:bg-gray-900 dark:text-white dark:border-gray-700 h-24 focus:ring-1 focus:ring-arcane-red outline-none"
                    />
                  </div>
-                 <div className="flex justify-end gap-2">
-                   <button onClick={() => setEditingId(null)} className="p-2 text-gray-500"><X size={20}/></button>
-                   <button onClick={saveEdit} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded font-bold"><Save size={16}/> Salvar</button>
+                 {/* O botão de Salvar só existe dentro deste bloco, que só abre se for Admin */}
+                 <div className="flex justify-end gap-2 pt-2">
+                   <button 
+                    type="button"
+                    onClick={() => setEditingId(null)} 
+                    className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+                   >
+                     <X size={20}/>
+                   </button>
+                   <button 
+                    type="button"
+                    onClick={saveEdit} 
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold shadow-lg shadow-green-500/20"
+                   >
+                     <Save size={16}/> SALVAR ALTERAÇÕES
+                   </button>
                  </div>
               </div>
             ) : (
@@ -127,9 +159,10 @@ const ThreatLevels: React.FC = () => {
       </div>
       
       {isAdmin && (
-        <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700 rounded text-center">
-           <p className="text-sm text-yellow-800 dark:text-yellow-500 font-semibold">
-             Você está logado como Administrador. Todas as alterações são registradas nos arquivos akashicos.
+        <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700 rounded text-center animate-in slide-in-from-bottom-5">
+           <p className="text-sm text-yellow-800 dark:text-yellow-500 font-semibold flex items-center justify-center gap-2">
+             <Unlock size={14} />
+             SESSÃO ADMINISTRATIVA ATIVA. ALTERAÇÕES PERMITIDAS.
            </p>
         </div>
       )}
