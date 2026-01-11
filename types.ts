@@ -27,11 +27,13 @@ export interface CatalogObject {
   notes?: string;
   customFields?: CustomField[];
   bearer?: Bearer;
+  threatGrade?: string; // Vínculo com a Classificação de Ameaça
+  powerLevel?: number; // 0 a 10000+ para ranqueamento de força
 }
 
 export interface ThreatLevel {
   id: string;
-  grade: string; // e.g., "Special Grade", "Grade 1"
+  grade: string; // e.g., "Classe Especial", "Classe 1"
   color: string;
   description: string;
   clearanceLevel: number;

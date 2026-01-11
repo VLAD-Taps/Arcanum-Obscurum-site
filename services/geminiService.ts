@@ -3,16 +3,7 @@ import { AspectRatio } from "../types";
 
 // Helper to get client with current key safely
 const getAiClient = () => {
-  // Safety check for browser environments where process might not be defined
-  const apiKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) 
-    ? process.env.API_KEY 
-    : '';
-    
-  if (!apiKey) {
-    console.error("API Key not found. Please ensure process.env.API_KEY is set.");
-    throw new Error("API Key not found in environment");
-  }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 // 1. Fast AI Responses (Gemini 2.5 Flash-Lite)

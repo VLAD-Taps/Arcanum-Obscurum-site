@@ -266,7 +266,8 @@ function App() {
 
         {activeTab === 'threats' && (
           <div className="max-w-4xl mx-auto w-full h-full pb-10">
-            <ThreatLevels />
+            {/* Passando o catálogo para o componente ThreatLevels */}
+            <ThreatLevels catalog={catalog} />
           </div>
         )}
 

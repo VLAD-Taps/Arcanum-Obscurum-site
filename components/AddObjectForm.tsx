@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Sparkles, Loader2, Save, Plus, Trash2, User, Crown, Box, MapPin } from 'lucide-react';
+import { Camera, Sparkles, Loader2, Save, Plus, Trash2, User, Crown, Box, MapPin, Zap, Skull } from 'lucide-react';
 import { analyzeImage, generateFastDescription } from '../services/geminiService';
 import { CatalogObject, CustomField, BearerRank } from '../types';
 
@@ -7,6 +7,14 @@ interface AddObjectFormProps {
   onSave: (obj: CatalogObject) => void;
   onCancel: () => void;
 }
+
+const THREAT_GRADES = [
+  'Classe Especial',
+  'Classe 1',
+  'Classe 2',
+  'Classe 3',
+  'Classe 4'
+];
 
 const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
   const [title, setTitle] = useState('');
@@ -23,6 +31,10 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
   // Bearer State
   const [bearerName, setBearerName] = useState('');
   const [bearerRank, setBearerRank] = useState<BearerRank>('Object');
+
+  // Threat & Power State
+  const [threatGrade, setThreatGrade] = useState<string>('Classe 4');
+  const [powerLevel, setPowerLevel] = useState<number>(100);
 
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingFast, setLoadingFast] = useState(false);
@@ -115,7 +127,9 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
       notes: notes || undefined,
       coordinates: coordinates,
       customFields: customFields.filter(f => f.key.trim() !== ''),
-      bearer: bearerName.trim() ? { name: bearerName, rank: bearerRank } : undefined
+      bearer: bearerName.trim() ? { name: bearerName, rank: bearerRank } : undefined,
+      threatGrade: threatGrade,
+      powerLevel: powerLevel
     };
     onSave(newObj);
   };
@@ -174,6 +188,38 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
             placeholder="Ex: Dedo de Sukuna"
             required
           />
+        </div>
+
+        {/* Threat Level & Power Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+                    <Skull size={12} /> Grau de Ameaça
+                </label>
+                <select
+                    value={threatGrade}
+                    onChange={(e) => setThreatGrade(e.target.value)}
+                    className="w-full p-2.5 rounded bg-gray-50 dark:bg-void border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-arcane-red outline-none dark:text-white text-sm font-bold"
+                >
+                    {THREAT_GRADES.map(grade => (
+                        <option key={grade} value={grade}>{grade}</option>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
+                    <Zap size={12} /> Nível de Poder Estimado: {powerLevel}
+                </label>
+                <input 
+                    type="range"
+                    min="0"
+                    max="10000"
+                    step="50"
+                    value={powerLevel}
+                    onChange={(e) => setPowerLevel(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-arcane-red"
+                />
+            </div>
         </div>
 
         {/* Bearer Section */}
