@@ -7,16 +7,32 @@ interface MapExplorerProps {
   onObjectSelect: (obj: CatalogObject) => void;
 }
 
+// Interface extended to include the temporary coordinates used for visualization
+interface MapItem extends CatalogObject {
+  tempCoords: {
+    lat: number;
+    lng: number;
+  };
+}
+
 // Simplified World Map SVG Path (Mercator-ish)
 const WORLD_PATH = "M156.4,28.2l-2.9,3.4l-3.2-1.2l-1.2,1.9l-2.4-0.5l-0.5,1.7l1.2,2.4l-1.9,1.7l-4.1-1.2l-1.7,2.2l-3.6,0.2l-1.5,2.4 l1.2,3.2l-2.9,2.7l0.5,2.7l-2.7,2.2l1.9,4.4l-2.7,2.4l-0.7,3.6l-3.9,1.9l-0.7,2.9l2.7,3.4l-1.7,3.2l0.2,3.6l-3.2,2.7l-0.5,3.9 l2.9,4.4l-1.5,4.9l2.2,2.7l-1.2,4.6l1.9,2.4l-0.5,3.9l-4.1,2.9l0.5,3.4l-2.7,2.7l1.2,3.9l-2.2,2.4l0.7,3.6l-3.4,2.9l0.5,3.4 l-3.2,1.5l1.9,5.8l-1.9,3.6l0.2,4.4l-3.9,3.2l0.5,4.6l-2.4,2.4l1.5,4.4l-2.7,3.6l0.2,5.1l-4.1,3.4l0.2,4.1l-3.9,2.9l1.2,5.3 l-2.9,2.7l1.2,4.1l-3.2,3.2l0.7,4.6l-2.9,2.4l1.2,4.1l-3.2,2.9l0.5,4.6l-3.6,1.9l1.2,4.9l-2.7,2.9l0.7,4.4l-3.6,2.7l1.2,5.1 l-3.2,2.4l0.5,4.9l-3.6,2.2l0.7,4.4l-4.1,2.9l1.2,5.1l-3.4,2.2l0.5,4.6l-3.9,2.4l1.2,5.1l-3.2,2.2l0.5,4.4l-3.6,1.9l0.7,4.6 l-4.1,2.4l1.2,5.3l-3.2,1.9l0.5,4.1l-3.6,1.9l1.2,5.6l-2.2,0.2l-2.2-2.7l-3.6,1.2l-1.9-2.9l-4.4,0.7l-1.5-3.6l-3.6,1.7 l-0.7-3.9l-4.1,1.2l-0.2-3.6l-3.4,1.7l0.5-4.1l-3.9,0.7l1-4.4l-3.6,0.2l1.7-4.1l-3.2-0.5l2.4-4.1l-3.2-1l3.2-3.9l-2.7-1.5 l3.6-3.2l-1.9-2.2l4.6-2.2l-1-2.9l5.1-1.2l-0.2-2.9l5.1-0.2l0.5-3.2l5.1,1l1.2-2.9l4.9,1.9l1.9-2.7l4.6,2.9l2.7-1.9l3.9,3.6 l3.2-1l3.2,3.2l3.2-1.2l2.7,2.9l3.6-0.7l2.2,2.9l3.4-0.5l1.9,2.9l3.6,0.5l1.2,2.9l3.9,1.5l1-3.2l4.1,1.9l1.9-2.7l4.4,2.4 l2.7-2.2l3.6,3.4l3.2-1.7l3.2,3.4l2.9-1.2l2.7,2.9l3.6-0.2l2.2,2.9l3.4,0.2l1.9,3.2l3.6,1l1.2,3.2l4.1,1.7l1.7-2.9l4.1,2.2 l2.7-2.4l3.9,3.4l3.2-1.5l3.4,3.4l2.7-1.5l3.2,3.2l3.4-0.5l2.4,2.9l3.4,0.7l1.9,3.2l3.9,1.5l1.5-3.2l4.1,2.2l1.9-2.7l4.4,2.7 l2.7-2.4l3.9,3.6l3.2-1.5l3.2,3.6l2.9-1.2l3.2,3.2l3.4,0.2l2.2,2.9l3.6,1l1.9,3.4l3.9,1.5l1.5-3.2l4.4,2.2l2.2-2.9l4.4,2.9 l2.9-2.4l3.9,3.6l3.4-1.5l3.4,3.9l2.7-1.7l3.2,3.4l3.4,0.2l2.4,3.2l3.6,1.2l1.9,3.4l3.9,2.2l1.5-3.2l4.4,2.7l2.2-2.9l4.6,3.2 l2.9-2.4l3.9,3.9l3.4-1.7l3.4,3.9l2.7-1.9l3.4,3.4l3.6,0.5l2.4,3.2l3.9,1.5l1.9,3.4l4.4,2.2ZM700,50 L750,80 L720,100 Z";
 
 const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) => {
-  const [selectedPin, setSelectedPin] = useState<CatalogObject | null>(null);
+  const [selectedPin, setSelectedPin] = useState<MapItem | null>(null);
 
   // Generate fake coordinates for demo purposes if not present
   // In a real app, this would use the `item.coordinates`
-  const mapItems = useMemo(() => {
+  const mapItems: MapItem[] = useMemo(() => {
     return catalog.map((item, index) => {
+      // Prioritize existing coordinates, else generate deterministic pseudo-random ones
+      if (item.coordinates) {
+          return {
+              ...item,
+              tempCoords: { lat: item.coordinates.lat, lng: item.coordinates.lng }
+          };
+      }
+
       // Deterministic pseudo-random based on ID string
       const hash = item.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const lat = (hash % 140) - 70; // Range -70 to 70

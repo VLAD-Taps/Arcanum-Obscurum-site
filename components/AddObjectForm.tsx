@@ -46,14 +46,20 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
       const base64 = image.split(',')[1];
       const jsonStr = await analyzeImage(base64);
       if (jsonStr) {
-        const data = JSON.parse(jsonStr);
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setTags(data.tags?.join(', ') || '');
+        // Parse safely
+        try {
+            const data = JSON.parse(jsonStr);
+            setTitle(data.title || '');
+            setDescription(data.description || '');
+            setTags(data.tags?.join(', ') || '');
+        } catch (jsonError) {
+            console.error("Failed to parse AI JSON", jsonError);
+            setDescription(jsonStr); // Fallback to raw text if JSON fails
+        }
       }
     } catch (error) {
       console.error("Erro na análise", error);
-      alert("Falha ao analisar imagem.");
+      alert("Falha ao analisar imagem. Tente novamente.");
     } finally {
       setLoadingAnalysis(false);
     }
@@ -90,10 +96,11 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Parse Coordinates
+    // Parse Coordinates with comma support
     let coordinates = undefined;
-    const parsedLat = parseFloat(lat);
-    const parsedLng = parseFloat(lng);
+    const parsedLat = parseFloat(lat.replace(',', '.'));
+    const parsedLng = parseFloat(lng.replace(',', '.'));
+    
     if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
       coordinates = { lat: parsedLat, lng: parsedLng };
     }
@@ -102,7 +109,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
       id: Date.now().toString(),
       title,
       description,
-      tags: tags.split(',').map(t => t.trim()),
+      tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
       imageUrl: image || undefined,
       dateAdded: Date.now(),
       notes: notes || undefined,
@@ -231,8 +238,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
            <div>
              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Latitude</label>
              <input
-               type="number"
-               step="any"
+               type="text"
                value={lat}
                onChange={(e) => setLat(e.target.value)}
                placeholder="Ex: -23.5505"
@@ -242,8 +248,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
            <div>
              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Longitude</label>
              <input
-               type="number"
-               step="any"
+               type="text"
                value={lng}
                onChange={(e) => setLng(e.target.value)}
                placeholder="Ex: -46.6333"

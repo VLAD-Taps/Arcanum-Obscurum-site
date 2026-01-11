@@ -1,10 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AspectRatio } from "../types";
 
-// Helper to get client with current key
+// Helper to get client with current key safely
 const getAiClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Safety check for browser environments where process might not be defined
+  const apiKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) 
+    ? process.env.API_KEY 
+    : '';
+    
   if (!apiKey) {
+    console.error("API Key not found. Please ensure process.env.API_KEY is set.");
     throw new Error("API Key not found in environment");
   }
   return new GoogleGenAI({ apiKey });
@@ -16,7 +21,7 @@ export const generateFastDescription = async (title: string, tags: string[]) => 
   const prompt = `Gere uma descrição curta, misteriosa e intrigante para um objeto chamado "${title}" com as tags: ${tags.join(', ')}. Use no máximo 2 frases.`;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-lite-latest', // Explicit request for flash-lite
+    model: 'gemini-flash-lite-latest', // Correct model name per guidelines
     contents: prompt,
   });
   return response.text;
@@ -45,15 +50,17 @@ export const analyzeImage = async (base64Image: string) => {
       }
     }
   });
-  return response.text;
+  
+  // Clean potential markdown code blocks if the model adds them despite MIME type
+  let text = response.text || "{}";
+  text = text.replace(/```json\n?|```/g, '').trim();
+  
+  return text;
 };
 
 // 3. Thinking Mode Chat (Gemini 3 Pro Preview + Thinking Budget)
 export const chatWithThinking = async (message: string, history: any[]) => {
   const ai = getAiClient();
-  // We use generateContent here to control the config more precisely for a single turn, 
-  // or we could use chat. For simplicity and explicit config showing, we'll do single turn or chat.
-  // Using chat for history management.
   
   const chat = ai.chats.create({
     model: 'gemini-3-pro-preview',
@@ -109,18 +116,15 @@ export const searchPlaces = async (query: string, lat: number, long: number) => 
   });
 
   const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-  // Extract map links if available
-  const mapLinks = groundingChunks
-    .map((chunk: any) => chunk.groundingMetadata?.groundingChunks || []) // Deep check logic depending on structure, usually chunks are top level
-    .flat(); // Simplified extraction for demo:
   
-  // Actually, standard Maps grounding returns chunks at top level
   const places = groundingChunks
-    .filter((chunk: any) => chunk.web?.uri?.includes('google.com/maps') || (chunk as any).maps) // Heuristic or specific map type
     .map((chunk: any) => {
-        if((chunk as any).maps) return (chunk as any).maps;
-        return { title: chunk.web?.title || 'Local', uri: chunk.web?.uri };
-    });
+        // Handle explicit maps chunk or web fallback
+        if (chunk.maps) return { title: chunk.maps.title || 'Local no Mapa', uri: chunk.maps.uri };
+        if (chunk.web && chunk.web.uri && chunk.web.uri.includes('maps')) return { title: chunk.web.title, uri: chunk.web.uri };
+        return null;
+    })
+    .filter((place: any) => place !== null);
 
   return { text: response.text, places };
 };
