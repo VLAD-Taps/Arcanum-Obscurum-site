@@ -9,7 +9,7 @@ const ImageStudio: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const ratios: AspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
+  const ratios: AspectRatio[] = ["1:1", "3:4", "4:3", "9:16", "16:9"];
 
   const handleGenerate = async () => {
     if (!prompt) return;

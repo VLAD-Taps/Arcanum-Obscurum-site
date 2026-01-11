@@ -18,6 +18,11 @@ function App() {
   const [selectedObject, setSelectedObject] = useState<CatalogObject | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
+  // Notification State using LocalStorage
+  const [hasNotification, setHasNotification] = useState(() => {
+    return localStorage.getItem('arcanum_has_notification') === 'true';
+  });
+  
   // Modal Animation State
   const [modalOrigin, setModalOrigin] = useState<{x: number, y: number} | null>(null);
 
@@ -37,6 +42,14 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDark]);
+
+  // Clear notification when visiting catalog
+  useEffect(() => {
+    if (activeTab === 'catalog') {
+      setHasNotification(false);
+      localStorage.removeItem('arcanum_has_notification');
+    }
+  }, [activeTab]);
 
   // Derive stories from catalog (mock simulation for "Recent Updates")
   useEffect(() => {
@@ -61,7 +74,13 @@ function App() {
 
   const handleSaveObject = (obj: CatalogObject) => {
     setCatalog(prev => [obj, ...prev]);
-    setActiveTab('catalog');
+    // Trigger notification
+    setHasNotification(true);
+    localStorage.setItem('arcanum_has_notification', 'true');
+    
+    // We do NOT switch to catalog automatically to show the notification dot on the tab
+    // User stays on form to potentially add more or sees the alert dot
+    window.alert("Registro arquivado com sucesso no Acervo.");
   };
 
   const handleDeleteObject = (id: string) => {
@@ -209,11 +228,20 @@ function App() {
                         )}
                       </h3>
                       
-                      {/* Bearer Subtitle */}
+                      {/* Bearer Subtitle & Type Indicator */}
                       {item.bearer && (
-                        <p className={`text-xs font-bold mb-3 uppercase tracking-wider ${item.bearer.rank === 'Concept' ? 'text-red-600' : 'text-blue-600'}`}>
-                          {item.bearer.name}
-                        </p>
+                        <div className="flex items-center gap-2 mb-3">
+                           <p className={`text-xs font-bold uppercase tracking-wider ${item.bearer.rank === 'Concept' ? 'text-red-600' : 'text-blue-600'}`}>
+                             {item.bearer.name}
+                           </p>
+                           <span className={`text-[8px] px-1.5 py-0.5 rounded border font-black ${
+                             item.bearer.rank === 'Concept' 
+                               ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800' 
+                               : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800'
+                           }`}>
+                             {item.bearer.rank === 'Concept' ? 'CONCEITO' : 'OBJETO'}
+                           </span>
+                        </div>
                       )}
 
                       {/* Reduced Description Size/Color */}
@@ -245,7 +273,8 @@ function App() {
 
         {activeTab === 'add' && (
           <div className="max-w-2xl mx-auto w-full">
-            <AddObjectForm onSave={handleSaveObject} onCancel={() => setActiveTab('catalog')} />
+            {/* Key forces component reset on save */}
+            <AddObjectForm key={catalog.length} onSave={handleSaveObject} onCancel={() => setActiveTab('catalog')} />
           </div>
         )}
 
@@ -318,6 +347,7 @@ function App() {
             onClick={() => setActiveTab('catalog')} 
             icon={<LayoutGrid size={22} />} 
             label="ACERVO" 
+            notification={hasNotification}
           />
           
           {/* 2. Global */}
@@ -359,14 +389,19 @@ function App() {
   );
 }
 
-const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+const NavButton = ({ active, onClick, icon, label, notification }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, notification?: boolean }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center justify-end gap-1 transition-colors h-12 pb-1 ${
+    className={`flex flex-col items-center justify-end gap-1 transition-colors h-12 pb-1 relative ${
       active ? 'text-arcane-red font-bold' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
     }`}
   >
-    {icon}
+    <div className="relative">
+      {icon}
+      {notification && (
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-arcane-red rounded-full border-2 border-white dark:border-void animate-pulse" />
+      )}
+    </div>
     <span className="text-[9px] font-black tracking-widest leading-none">{label}</span>
   </button>
 );

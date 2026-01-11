@@ -3,8 +3,8 @@ import { Shield, AlertTriangle, Lock, Unlock, Edit2, Save, X, Skull, ArrowLeft, 
 import { ThreatLevel, CatalogObject } from '../types';
 
 const INITIAL_LEVELS: ThreatLevel[] = [
-  { id: '1', grade: 'Classe Especial', color: 'bg-black text-red-500 border-red-500', description: 'Anomalias capazes de destruir cidades inteiras. O contato deve ser evitado a todo custo.', clearanceLevel: 5 },
-  { id: '2', grade: 'Classe 1', color: 'bg-red-900 text-white', description: 'Ameaças de alto nível. Requer feiticeiros de elite para contenção.', clearanceLevel: 4 },
+  { id: '1', grade: 'Classe Especial', color: 'bg-black text-red-500 border-red-500', description: 'Anomalias capazes de destruir países ou continentes. O contato deve ser evitado a todo custo.', clearanceLevel: 5 },
+  { id: '2', grade: 'Classe 1', color: 'bg-red-900 text-white', description: 'Ameaças de alto nível. Requer agentes de elite para contenção.', clearanceLevel: 4 },
   { id: '3', grade: 'Classe 2', color: 'bg-red-700 text-white', description: 'Perigo significativo para civis. Habitualmente letais.', clearanceLevel: 3 },
   { id: '4', grade: 'Classe 3', color: 'bg-red-500 text-white', description: 'Ameaças convencionais. Podem causar ferimentos graves.', clearanceLevel: 2 },
   { id: '5', grade: 'Classe 4', color: 'bg-gray-600 text-white', description: 'Baixo risco. Geralmente travessuras ou maldições menores.', clearanceLevel: 1 },
