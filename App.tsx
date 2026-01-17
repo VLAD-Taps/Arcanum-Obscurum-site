@@ -9,7 +9,7 @@ import StoriesFeed from './components/StoriesFeed';
 import StoryViewer from './components/StoryViewer';
 import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
-import { CatalogObject, Story } from './types';
+import { CatalogObject, Story, NotificationPreferences } from './types';
 
 function App() {
   const [isDark, setIsDark] = useState(true);
@@ -18,10 +18,25 @@ function App() {
   const [selectedObject, setSelectedObject] = useState<CatalogObject | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // Notification State using LocalStorage
+  // Notification State using LocalStorage (Global App Badge)
   const [hasNotification, setHasNotification] = useState(() => {
     return localStorage.getItem('arcanum_has_notification') === 'true';
   });
+
+  // Watchlist Preferences State
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(() => {
+    const saved = localStorage.getItem('arcanum_watch_prefs');
+    return saved ? JSON.parse(saved) : {
+      enabled: false,
+      watchedTags: [],
+      watchedGrades: ['Classe Especial']
+    };
+  });
+
+  // Save prefs whenever they change
+  useEffect(() => {
+    localStorage.setItem('arcanum_watch_prefs', JSON.stringify(notificationPrefs));
+  }, [notificationPrefs]);
   
   // Modal Animation State
   const [modalOrigin, setModalOrigin] = useState<{x: number, y: number} | null>(null);
@@ -74,13 +89,34 @@ function App() {
 
   const handleSaveObject = (obj: CatalogObject) => {
     setCatalog(prev => [obj, ...prev]);
-    // Trigger notification
+    // Trigger notification badge
     setHasNotification(true);
     localStorage.setItem('arcanum_has_notification', 'true');
     
-    // We do NOT switch to catalog automatically to show the notification dot on the tab
-    // User stays on form to potentially add more or sees the alert dot
-    window.alert("Registro arquivado com sucesso no Acervo.");
+    // Check Watchlist logic
+    let alertMessage = "Registro arquivado com sucesso no Acervo.";
+    
+    if (notificationPrefs.enabled) {
+      const tagMatch = obj.tags.some(tag => 
+        notificationPrefs.watchedTags.some(watched => watched.toLowerCase() === tag.toLowerCase())
+      );
+      const gradeMatch = obj.threatGrade && notificationPrefs.watchedGrades.includes(obj.threatGrade);
+
+      if (tagMatch || gradeMatch) {
+        alertMessage = `⚠️ ALERTA DE VIGILÂNCIA ⚠️\n\nO objeto "${obj.title}" corresponde aos seus protocolos de monitoramento!\n` +
+                       (gradeMatch ? `• Nível de Ameaça: ${obj.threatGrade}\n` : '') +
+                       (tagMatch ? `• Tags Suspeitas Detectadas` : '');
+        
+        // Play a subtle sound or just rely on the alert
+        try {
+          const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3'); // Placeholder short beep
+          audio.volume = 0.2;
+          audio.play().catch(e => console.log('Audio play blocked', e));
+        } catch (e) {}
+      }
+    }
+
+    window.alert(alertMessage);
   };
 
   const handleDeleteObject = (id: string) => {
@@ -336,6 +372,8 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         isDark={isDark}
         toggleTheme={toggleTheme}
+        notificationPrefs={notificationPrefs}
+        onUpdatePrefs={setNotificationPrefs}
       />
 
       {/* Bottom Tab Bar (Red/White Theme) */}

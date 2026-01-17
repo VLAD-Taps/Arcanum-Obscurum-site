@@ -71,3 +71,9 @@ export enum AiMode {
   VISION = 'vision',
   IMAGE_GEN = 'image_gen'
 }
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  watchedTags: string[];
+  watchedGrades: string[];
+}

@@ -94,12 +94,10 @@ export const searchPlaces = async (query: string, lat: number, long: number) => 
     config: {
       tools: [{ googleMaps: {} }],
       toolConfig: {
-        googleMaps: {
-          retrievalConfig: {
-            latLng: {
-              latitude: lat,
-              longitude: long
-            }
+        retrievalConfig: {
+          latLng: {
+            latitude: lat,
+            longitude: long
           }
         }
       }
