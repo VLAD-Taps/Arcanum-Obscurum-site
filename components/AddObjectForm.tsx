@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Sparkles, Loader2, Save, Plus, Trash2, User, Crown, Box, MapPin, Zap, Skull } from 'lucide-react';
+import { Camera, Sparkles, Loader2, Save, Plus, Trash2, User, Crown, Box, MapPin, Zap, Skull, CheckCircle } from 'lucide-react';
 import { analyzeImage, generateFastDescription } from '../services/geminiService';
 import { CatalogObject, CustomField, BearerRank } from '../types';
 
@@ -38,6 +38,10 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
 
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingFast, setLoadingFast] = useState(false);
+  
+  // Animation State
+  const [isSuccessAnim, setIsSuccessAnim] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +135,14 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
       threatGrade: threatGrade,
       powerLevel: powerLevel
     };
-    onSave(newObj);
+
+    // Trigger Animation
+    setIsSuccessAnim(true);
+    
+    // Delay save slightly to show animation
+    setTimeout(() => {
+        onSave(newObj);
+    }, 700);
   };
 
   return (
@@ -389,9 +400,20 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-arcane-red text-white font-bold rounded hover:bg-red-700 shadow-lg shadow-red-500/30 uppercase tracking-wider"
+          disabled={isSuccessAnim}
+          className={`px-6 py-2 font-bold rounded shadow-lg uppercase tracking-wider transition-all duration-500 transform ${
+            isSuccessAnim 
+              ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(147,51,234,0.7)] scale-105 ring-2 ring-purple-400 border-transparent' 
+              : 'bg-arcane-red text-white hover:bg-red-700 shadow-red-500/30'
+          }`}
         >
-          REGISTRAR
+          {isSuccessAnim ? (
+             <span className="flex items-center gap-2 animate-pulse">
+               <CheckCircle size={18} /> SELANDO...
+             </span>
+          ) : (
+             "REGISTRAR"
+          )}
         </button>
       </div>
     </form>

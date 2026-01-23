@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, AlertTriangle, Lock, Unlock, Edit2, Save, X, Skull, ArrowLeft, Zap, User, Box } from 'lucide-react';
+import { Shield, AlertTriangle, Unlock, Edit2, Save, X, Skull, ArrowLeft, Zap, User, Box } from 'lucide-react';
 import { ThreatLevel, CatalogObject } from '../types';
 
 const INITIAL_LEVELS: ThreatLevel[] = [
@@ -12,32 +12,16 @@ const INITIAL_LEVELS: ThreatLevel[] = [
 
 interface ThreatLevelsProps {
   catalog: CatalogObject[];
+  isAdmin: boolean;
 }
 
-const ThreatLevels: React.FC<ThreatLevelsProps> = ({ catalog }) => {
+const ThreatLevels: React.FC<ThreatLevelsProps> = ({ catalog, isAdmin }) => {
   const [levels, setLevels] = useState<ThreatLevel[]>(INITIAL_LEVELS);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ThreatLevel>>({});
   
   // State for viewing filtered objects by grade
   const [viewingGrade, setViewingGrade] = useState<string | null>(null);
-
-  const toggleAdmin = () => {
-    if (isAdmin) {
-      setIsAdmin(false);
-      setEditingId(null);
-    } else {
-      setTimeout(() => {
-        const password = window.prompt("INSIRA A CREDENCIAL DE SEGURANÇA (NÍVEL 5):");
-        if (password === '411521096') {
-          setIsAdmin(true);
-        } else if (password !== null) {
-          alert("ACESSO NEGADO. Protocolo de segurança ativado.");
-        }
-      }, 50);
-    }
-  };
 
   const startEdit = (e: React.MouseEvent, level: ThreatLevel) => {
     e.stopPropagation(); // Prevent opening the filtered view
@@ -84,19 +68,6 @@ const ThreatLevels: React.FC<ThreatLevelsProps> = ({ catalog }) => {
                     <ArrowLeft size={16} /> VOLTAR
                 </button>
             )}
-
-            <button 
-              type="button"
-              onClick={toggleAdmin}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all cursor-pointer relative z-20 ${
-                isAdmin 
-                  ? 'bg-arcane-red text-white shadow-lg shadow-red-500/30 hover:bg-red-700' 
-                  : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700'
-              }`}
-            >
-              {isAdmin ? <Unlock size={16} /> : <Lock size={16} />}
-              {isAdmin ? 'ADMIN' : 'ACESSAR'}
-            </button>
         </div>
       </div>
 

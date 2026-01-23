@@ -360,7 +360,7 @@ function App() {
         {activeTab === 'threats' && (
           <div className="max-w-4xl mx-auto w-full h-full pb-10">
             {/* Passando o catálogo para o componente ThreatLevels */}
-            <ThreatLevels catalog={catalog} />
+            <ThreatLevels catalog={catalog} isAdmin={isAdmin} />
           </div>
         )}
 
