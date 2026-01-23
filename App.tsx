@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -17,6 +17,9 @@ function App() {
   const [catalog, setCatalog] = useState<CatalogObject[]>([]);
   const [selectedObject, setSelectedObject] = useState<CatalogObject | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Admin Mode State
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Notification State using LocalStorage (Global App Badge)
   const [hasNotification, setHasNotification] = useState(() => {
@@ -87,6 +90,11 @@ function App() {
 
   const toggleTheme = () => setIsDark(!isDark);
 
+  const handleSaveSystem = () => {
+    // Simula salvamento persistente
+    window.alert("Estado do Sistema salvo com sucesso.");
+  };
+
   const handleSaveObject = (obj: CatalogObject) => {
     setCatalog(prev => [obj, ...prev]);
     // Trigger notification badge
@@ -152,8 +160,18 @@ function App() {
           <div className="w-8 h-8 bg-arcane-red rounded flex items-center justify-center shadow-lg shadow-red-600/20">
             <Box className="text-white w-5 h-5" />
           </div>
-          <h1 className="text-xl font-black text-arcane-red tracking-widest uppercase">
+          <h1 className="text-xl font-black text-arcane-red tracking-widest uppercase flex items-center gap-3">
             ARCANUM OBSCURUM
+            {/* Botão de Salvar apenas para Admin no Header */}
+            {isAdmin && (
+              <button 
+                onClick={handleSaveSystem}
+                className="bg-green-600 hover:bg-green-700 text-white p-1.5 rounded shadow-lg transition-transform active:scale-95"
+                title="Salvar Estado do Sistema"
+              >
+                <Save size={16} />
+              </button>
+            )}
           </h1>
         </div>
         
@@ -177,14 +195,20 @@ function App() {
         {activeTab === 'catalog' && (
           <div className="space-y-6">
             
-            {/* Stories Feed */}
-            {stories.length > 0 && (
+            {/* Feed de Noticias: Exibido APENAS se NÃO for admin */}
+            {!isAdmin && stories.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-gray-500 dark:text-red-400 mb-2 px-1 uppercase tracking-wide">Descobertas Recentes</h3>
                 <StoriesFeed 
                   stories={stories} 
                   onStoryClick={(idx) => setActiveStoryIndex(idx)}
-                  onAddStory={() => setActiveTab('add')}
+                  onAddStory={() => {
+                     // Usuário comum não pode adicionar, então talvez desabilitar ou mostrar aviso
+                     // Mas o componente StoriesFeed tem o botão 'Novo' embutido. 
+                     // Como a instrução diz "substituído", vamos ignorar o clique ou não mostrar se possível.
+                     // A prop onAddStory é required no StoriesFeed atual, vamos passar uma função vazia ou alerta.
+                     alert("Acesso restrito. Faça login como administrador.");
+                  }}
                 />
               </div>
             )}
@@ -194,12 +218,16 @@ function App() {
                 <h2 className="text-4xl font-black dark:text-white uppercase tracking-tighter">Acervo Global</h2>
                 <p className="text-arcane-red font-medium">Itens contidos: {catalog.length}</p>
               </div>
-              <button
-                onClick={() => setActiveTab('add')}
-                className="bg-arcane-red hover:bg-red-700 text-white px-5 py-2.5 rounded font-bold flex items-center gap-2 shadow-lg shadow-red-600/30 transition-all uppercase text-sm tracking-wider"
-              >
-                <Plus size={18} /> Novo Registro
-              </button>
+              
+              {/* Botão Novo Registro: Exibido APENAS se for Admin */}
+              {isAdmin && (
+                <button
+                    onClick={() => setActiveTab('add')}
+                    className="bg-arcane-red hover:bg-red-700 text-white px-5 py-2.5 rounded font-bold flex items-center gap-2 shadow-lg shadow-red-600/30 transition-all uppercase text-sm tracking-wider"
+                >
+                    <Plus size={18} /> Novo Registro
+                </button>
+              )}
             </div>
 
             {catalog.length === 0 ? (
@@ -307,7 +335,7 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'add' && (
+        {activeTab === 'add' && isAdmin && (
           <div className="max-w-2xl mx-auto w-full">
             {/* Key forces component reset on save */}
             <AddObjectForm key={catalog.length} onSave={handleSaveObject} onCancel={() => setActiveTab('catalog')} />
@@ -374,6 +402,8 @@ function App() {
         toggleTheme={toggleTheme}
         notificationPrefs={notificationPrefs}
         onUpdatePrefs={setNotificationPrefs}
+        onAdminLogin={() => setIsAdmin(true)}
+        isAdmin={isAdmin}
       />
 
       {/* Bottom Tab Bar (Red/White Theme) */}
@@ -396,14 +426,16 @@ function App() {
             label="GLOBAL" 
           />
           
-          {/* 3. Center ADD Button */}
+          {/* 3. Center ADD Button - APENAS ADMIN */}
           <div className="flex justify-center relative -top-6">
-             <button 
-               onClick={() => setActiveTab('add')}
-               className={`bg-arcane-red text-white w-14 h-14 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/40 hover:scale-105 transition-transform rotate-45 border-4 border-white dark:border-void ${activeTab === 'add' ? 'ring-2 ring-red-400' : ''}`}
-             >
-               <Plus size={28} className="-rotate-45" />
-             </button>
+             {isAdmin && (
+                 <button 
+                   onClick={() => setActiveTab('add')}
+                   className={`bg-arcane-red text-white w-14 h-14 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/40 hover:scale-105 transition-transform rotate-45 border-4 border-white dark:border-void ${activeTab === 'add' ? 'ring-2 ring-red-400' : ''}`}
+                 >
+                   <Plus size={28} className="-rotate-45" />
+                 </button>
+             )}
           </div>
 
           {/* 4. Buscas */}

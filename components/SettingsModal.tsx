@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Moon, Sun, Settings, Bell, Tag, AlertTriangle, Trash2, Plus } from 'lucide-react';
+import { X, Moon, Sun, Settings, Bell, Tag, AlertTriangle, Trash2, Plus, Lock, Unlock } from 'lucide-react';
 import { NotificationPreferences } from '../types';
 
 interface SettingsModalProps {
@@ -9,6 +9,8 @@ interface SettingsModalProps {
   toggleTheme: () => void;
   notificationPrefs?: NotificationPreferences;
   onUpdatePrefs?: (prefs: NotificationPreferences) => void;
+  onAdminLogin: () => void;
+  isAdmin: boolean;
 }
 
 const THREAT_GRADES = [
@@ -25,9 +27,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   isDark, 
   toggleTheme,
   notificationPrefs,
-  onUpdatePrefs
+  onUpdatePrefs,
+  onAdminLogin,
+  isAdmin
 }) => {
   const [newTag, setNewTag] = useState('');
+  
+  // Admin Activation State
+  const [versionClickCount, setVersionClickCount] = useState(0);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [password, setPassword] = useState('');
 
   if (!isOpen) return null;
 
@@ -77,6 +86,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  // Easter Egg / Admin Logic
+  const handleVersionClick = (e: React.MouseEvent) => {
+    if (isAdmin) return; // Já é admin
+    
+    // Check for left click (button 0)
+    if (e.button === 0) {
+        const newCount = versionClickCount + 1;
+        setVersionClickCount(newCount);
+        if (newCount === 4) {
+            setShowPasswordInput(true);
+            setVersionClickCount(0);
+        }
+    }
+  };
+
+  const handlePasswordSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+        if (password === '411521096') {
+            onAdminLogin();
+            setShowPasswordInput(false);
+            setPassword('');
+            onClose(); // Fecha modal ao logar
+            alert("ACESSO ADMINISTRATIVO CONCEDIDO.\n\nVocê agora possui permissão para modificar o Acervo Global.");
+        } else {
+            alert("SENHA INCORRETA. Protocolo de segurança ativado.");
+            setPassword('');
+            setVersionClickCount(0);
+        }
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-void-light w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
@@ -93,6 +133,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <div className="p-6 space-y-8">
           
+          {/* Status Admin */}
+          {isAdmin && (
+             <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 rounded text-center mb-4">
+                 <p className="text-red-800 dark:text-red-400 text-xs font-black flex items-center justify-center gap-2">
+                     <Unlock size={14} /> MODO ADMINISTRADOR ATIVO
+                 </p>
+             </div>
+          )}
+
           {/* Theme Setting */}
           <div className="flex items-center justify-between">
             <div>
@@ -216,10 +265,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-             <p className="text-xs text-center text-gray-400">
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-col items-center">
+             <p 
+                onClick={handleVersionClick}
+                className="text-xs text-center text-gray-400 cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+             >
                ARCANUM OBSCURUM v1.1
              </p>
+             
+             {showPasswordInput && (
+                 <div className="mt-4 w-full animate-in fade-in slide-in-from-bottom-2">
+                     <div className="relative">
+                         <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                         <input 
+                             type="password"
+                             value={password}
+                             onChange={(e) => setPassword(e.target.value)}
+                             onKeyDown={handlePasswordSubmit}
+                             placeholder="Credencial de Administrador"
+                             className="w-full pl-9 pr-3 py-2 text-sm bg-black text-red-500 font-mono border border-red-900 rounded focus:ring-1 focus:ring-red-500 outline-none"
+                             autoFocus
+                         />
+                     </div>
+                 </div>
+             )}
           </div>
 
         </div>
