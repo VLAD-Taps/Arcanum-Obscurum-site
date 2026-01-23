@@ -154,6 +154,13 @@ function App() {
 
   return (
     <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100">
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       {/* Navbar - Red/White Theme */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 dark:bg-void/95 backdrop-blur-md border-b border-gray-200 dark:border-red-900/50 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
@@ -203,10 +210,7 @@ function App() {
                   stories={stories} 
                   onStoryClick={(idx) => setActiveStoryIndex(idx)}
                   onAddStory={() => {
-                     // Usuário comum não pode adicionar, então talvez desabilitar ou mostrar aviso
-                     // Mas o componente StoriesFeed tem o botão 'Novo' embutido. 
-                     // Como a instrução diz "substituído", vamos ignorar o clique ou não mostrar se possível.
-                     // A prop onAddStory é required no StoriesFeed atual, vamos passar uma função vazia ou alerta.
+                     // Usuário comum não pode adicionar
                      alert("Acesso restrito. Faça login como administrador.");
                   }}
                 />
@@ -239,10 +243,15 @@ function App() {
             ) : (
               // Changed grid to grid-cols-2 for mobile and up to grid-cols-4 for large screens
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-10">
-                {catalog.slice(0, visibleItems).map((item) => (
+                {catalog.slice(0, visibleItems).map((item, index) => (
                   <div 
                     key={item.id} 
                     onClick={(e) => handleCardClick(e, item)}
+                    style={{
+                      animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                      animationDelay: `${(index % 12) * 0.05}s`, // Stagger delay for up to 12 items at a time
+                      opacity: 0 // Start invisible
+                    }}
                     className="bg-white dark:bg-void-light rounded overflow-hidden shadow-lg border border-gray-200 dark:border-red-900/40 hover:border-arcane-red dark:hover:border-arcane-red transition-all group cursor-pointer hover:shadow-xl hover:shadow-red-900/20 flex flex-col h-full transform hover:-translate-y-1 duration-200"
                   >
                     {/* Increased height for prominent image */}
