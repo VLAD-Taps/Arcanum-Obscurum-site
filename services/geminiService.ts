@@ -142,12 +142,13 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
 };
 
 // 7. Global Disaster Feed (Gemini 3 Flash Preview)
-export const fetchGlobalDisasters = async () => {
+export const fetchGlobalDisasters = async (count: number = 5) => {
   const ai = getAiClient();
-  const prompt = `Gere uma lista de 5 eventos recentes de "catástrofes ocultas ou naturais bizarras" ao redor do mundo para um feed de notícias de uma agência secreta.
-  Misture eventos reais (terremotos, tempestades) com toques sobrenaturais sutis.
+  const prompt = `Gere uma lista de ${count} eventos ÚNICOS e criativos de "catástrofes ocultas, anomalias climáticas ou eventos sobrenaturais" ocorrendo AGORA ao redor do mundo.
+  Varie as localizações (use cidades reais menos óbvias).
+  Misture ficção científica com desastres naturais.
   Retorne APENAS um JSON array.
-  Estrutura: [{ "location": string, "type": string, "severity": "low"|"medium"|"high"|"critical", "description": string, "timestamp": string (horario curto) }]`;
+  Estrutura: [{ "location": string, "type": string, "severity": "low"|"medium"|"high"|"critical", "description": string, "timestamp": string (horario atual HH:mm) }]`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -176,4 +177,26 @@ export const fetchGlobalDisasters = async () => {
     console.error("Failed to parse disaster feed", e);
     return [];
   }
+};
+
+// 8. Generate Full News Report (Gemini 3 Pro)
+export const generateFullNewsReport = async (event: any) => {
+  const ai = getAiClient();
+  const prompt = `Atue como um relatório confidencial da agência ARCANUM misturado com um jornalismo de urgência.
+  
+  Escreva uma reportagem completa (aprox. 3 parágrafos) sobre o seguinte evento:
+  Evento: ${event.type}
+  Local: ${event.location}
+  Severidade: ${event.severity}
+  Detalhes Iniciais: ${event.description}
+
+  O tom deve ser sério, alarmante e levemente misterioso. Inclua supostas "testemunhas oculares" e "tentativas de encobrimento governamental".
+  Use formatação Markdown simples.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+  });
+
+  return response.text;
 };
