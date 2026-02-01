@@ -140,3 +140,40 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
   }
   return null;
 };
+
+// 7. Global Disaster Feed (Gemini 3 Flash Preview)
+export const fetchGlobalDisasters = async () => {
+  const ai = getAiClient();
+  const prompt = `Gere uma lista de 5 eventos recentes de "catástrofes ocultas ou naturais bizarras" ao redor do mundo para um feed de notícias de uma agência secreta.
+  Misture eventos reais (terremotos, tempestades) com toques sobrenaturais sutis.
+  Retorne APENAS um JSON array.
+  Estrutura: [{ "location": string, "type": string, "severity": "low"|"medium"|"high"|"critical", "description": string, "timestamp": string (horario curto) }]`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            location: { type: Type.STRING },
+            type: { type: Type.STRING },
+            severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
+            description: { type: Type.STRING },
+            timestamp: { type: Type.STRING }
+          }
+        }
+      }
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || "[]");
+  } catch (e) {
+    console.error("Failed to parse disaster feed", e);
+    return [];
+  }
+};

@@ -1,3 +1,4 @@
+
 export interface CustomField {
   key: string;
   value: string;
@@ -45,6 +46,16 @@ export interface Story {
   title: string;
   isSeen: boolean;
   date: number;
+}
+
+export interface DisasterEvent {
+  id: string;
+  location: string;
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  timestamp: string;
+  coordinates?: { lat: number, lng: number };
 }
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -9,11 +9,12 @@ import StoriesFeed from './components/StoriesFeed';
 import StoryViewer from './components/StoryViewer';
 import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
+import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
 import { CatalogObject, Story, NotificationPreferences } from './types';
 
 function App() {
   const [isDark, setIsDark] = useState(true);
-  const [activeTab, setActiveTab] = useState<'catalog' | 'add' | 'chat' | 'maps' | 'threats' | 'search'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'add' | 'chat' | 'maps' | 'threats' | 'search' | 'news'>('catalog');
   const [catalog, setCatalog] = useState<CatalogObject[]>([]);
   const [selectedObject, setSelectedObject] = useState<CatalogObject | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -366,6 +367,12 @@ function App() {
           </div>
         )}
 
+        {activeTab === 'news' && (
+          <div className="max-w-4xl mx-auto w-full h-full">
+            <DisasterFeed />
+          </div>
+        )}
+
         {activeTab === 'threats' && (
           <div className="max-w-4xl mx-auto w-full h-full pb-10">
             {/* Passando o catálogo para o componente ThreatLevels */}
@@ -435,17 +442,13 @@ function App() {
             label="GLOBAL" 
           />
           
-          {/* 3. Center ADD Button - APENAS ADMIN */}
-          <div className="flex justify-center relative -top-6">
-             {isAdmin && (
-                 <button 
-                   onClick={() => setActiveTab('add')}
-                   className={`bg-arcane-red text-white w-14 h-14 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/40 hover:scale-105 transition-transform rotate-45 border-4 border-white dark:border-void ${activeTab === 'add' ? 'ring-2 ring-red-400' : ''}`}
-                 >
-                   <Plus size={28} className="-rotate-45" />
-                 </button>
-             )}
-          </div>
+          {/* 3. News (Substituindo botão central anterior) */}
+          <NavButton 
+            active={activeTab === 'news'} 
+            onClick={() => setActiveTab('news')} 
+            icon={<Radio size={22} />} 
+            label="SINAIS" 
+          />
 
           {/* 4. Buscas */}
           <NavButton 
