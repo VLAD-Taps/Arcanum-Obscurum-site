@@ -42,7 +42,7 @@ function App() {
   const [disasterAlertPrefs, setDisasterAlertPrefs] = useState<DisasterAlertPreference>(() => {
     const saved = localStorage.getItem('arcanum_disaster_prefs');
     return saved ? JSON.parse(saved) : {
-      enabled: false,
+      enabled: true, // Enable by default for better discovery
       watchedTypes: [],
       watchedLocations: [],
       minSeverity: 'high'
@@ -254,26 +254,44 @@ function App() {
         }
       `}</style>
 
-      {/* Global Alert Banner */}
+      {/* Global Alert Banner - Enhanced */}
       {activeAlerts.length > 0 && (
-        <div className="fixed top-16 left-0 w-full z-40 px-4 pt-2 pb-0 flex flex-col gap-2 pointer-events-none">
-          {activeAlerts.map((alert, idx) => (
-            <div key={alert.id} className="bg-red-600 text-white p-3 rounded shadow-lg shadow-red-900/50 flex justify-between items-center animate-in slide-in-from-top-5 duration-300 pointer-events-auto border-l-4 border-white">
-              <div className="flex items-center gap-3">
-                 <AlertTriangle className="animate-pulse" size={20} />
-                 <div>
-                   <p className="text-xs font-black uppercase tracking-widest">Alerta de Vigilância Detectado</p>
-                   <p className="text-sm font-bold leading-tight">{alert.description} <span className="opacity-75 text-xs">({alert.location})</span></p>
-                 </div>
-              </div>
-              <button 
-                onClick={() => setActiveAlerts(prev => prev.filter(a => a.id !== alert.id))}
-                className="p-1 hover:bg-white/20 rounded"
-              >
-                <X size={18} />
-              </button>
+        <div className="fixed top-[57px] left-0 w-full z-40 animate-in slide-in-from-top-2 duration-300 pointer-events-auto">
+          <div className="bg-red-600/95 backdrop-blur-md text-white px-4 py-2 shadow-lg flex justify-between items-center border-b border-red-500">
+            <div className="flex items-center gap-3 overflow-hidden">
+               <div className="bg-white text-red-600 p-1 rounded-sm animate-pulse shrink-0">
+                 <AlertTriangle size={16} />
+               </div>
+               <div 
+                 className="flex flex-col min-w-0 cursor-pointer group"
+                 onClick={() => setActiveTab('news')}
+               >
+                 <span className="text-[10px] font-black uppercase tracking-widest opacity-90 group-hover:text-red-200 transition-colors">
+                   {activeAlerts.length} Ameaça(s) Detectada(s)
+                 </span>
+                 <span className="text-sm font-bold truncate leading-tight group-hover:underline">
+                   {activeAlerts[0].description} <span className="opacity-80 font-normal text-xs"> — {activeAlerts[0].location}</span>
+                 </span>
+               </div>
             </div>
-          ))}
+            
+            <div className="flex items-center gap-3 shrink-0 ml-2">
+               {activeAlerts.length > 1 && (
+                 <div className="flex gap-1">
+                    {activeAlerts.slice(1, 4).map((_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                    ))}
+                 </div>
+               )}
+               <button 
+                 onClick={() => setActiveAlerts([])}
+                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                 title="Dispensar Todos"
+               >
+                 <X size={16} />
+               </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -567,6 +585,7 @@ function App() {
             onClick={() => setActiveTab('news')} 
             icon={<Radio size={22} />} 
             label="SINAIS" 
+            notification={activeAlerts.length > 0}
           />
 
           {/* 4. Buscas */}
