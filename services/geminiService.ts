@@ -141,40 +141,54 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
   return null;
 };
 
-// 7. Global Disaster Feed (Gemini 3 Flash Preview)
+// 7. Global News Feed (Gemini 2.5 Flash - Faster & Cheaper)
 export const fetchGlobalDisasters = async (count: number = 5) => {
   const ai = getAiClient();
-  const prompt = `Gere uma lista de ${count} eventos ÚNICOS e criativos de "catástrofes ocultas, anomalias climáticas ou eventos sobrenaturais" ocorrendo AGORA ao redor do mundo.
-  Varie as localizações (use cidades reais menos óbvias).
-  Misture ficção científica com desastres naturais.
-  Retorne APENAS um JSON array.
-  Estrutura: [{ "location": string, "type": string, "severity": "low"|"medium"|"high"|"critical", "description": string, "timestamp": string (horario atual HH:mm) }]`;
+  const prompt = `Atue como um jornalista de um jornal secreto chamado "O Observador Arcano". 
+  Gere uma lista de ${count} manchetes urgentes (Breaking News) sobre FENÔMENOS INEXPLICÁVEIS e EVENTOS ANORMAIS ocorrendo AGORA no mundo.
+  
+  Os tópicos devem ser estritamente paranormais ou bizarros:
+  - Anomalias físicas (ex: gravidade invertida, sombras vivas).
+  - Avistamentos de entidades não catalogadas (criptídeos, seres interdimensionais).
+  - Eventos climáticos impossíveis (ex: chuva de peixes, nuvens sólidas).
+  - Desaparecimentos em massa ou histeria coletiva inexplicável.
+  - Sinais de rádio vindos do centro da Terra ou do espaço profundo.
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            location: { type: Type.STRING },
-            type: { type: Type.STRING },
-            severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
-            description: { type: Type.STRING },
-            timestamp: { type: Type.STRING }
+  Use cidades reais. Seja criativo, sério, alarmista e misterioso.
+  Retorne APENAS um JSON array.
+  Estrutura: [{ "location": string, "type": string (ex: "ANOMALIA", "CRIPTÍDEO", "PSIÔNICO"), "severity": "low"|"medium"|"high"|"critical", "description": string (manchete curta), "timestamp": string (horario HH:mm) }]`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 2000, // Prevent huge responses
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              location: { type: Type.STRING },
+              type: { type: Type.STRING },
+              severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
+              description: { type: Type.STRING },
+              timestamp: { type: Type.STRING }
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  try {
     return JSON.parse(response.text || "[]");
-  } catch (e) {
-    console.error("Failed to parse disaster feed", e);
+  } catch (e: any) {
+    // Handle Rate Limits gracefully
+    if (e.message?.includes('429') || e.status === 429) {
+      console.warn("Quota exceeded for news feed. Pausing updates temporarily.");
+      return [];
+    }
+    console.error("Failed to fetch/parse news feed", e);
     return [];
   }
 };
@@ -182,15 +196,19 @@ export const fetchGlobalDisasters = async (count: number = 5) => {
 // 8. Generate Full News Report (Gemini 3 Pro)
 export const generateFullNewsReport = async (event: any) => {
   const ai = getAiClient();
-  const prompt = `Atue como um relatório confidencial da agência ARCANUM misturado com um jornalismo de urgência.
+  const prompt = `Escreva uma matéria jornalística completa e sensacionalista (aprox. 3 parágrafos) para o "O Observador Arcano" sobre:
   
-  Escreva uma reportagem completa (aprox. 3 parágrafos) sobre o seguinte evento:
-  Evento: ${event.type}
+  Manchete: ${event.description}
+  Tipo: ${event.type}
   Local: ${event.location}
   Severidade: ${event.severity}
-  Detalhes Iniciais: ${event.description}
 
-  O tom deve ser sério, alarmante e levemente misterioso. Inclua supostas "testemunhas oculares" e "tentativas de encobrimento governamental".
+  Inclua:
+  1. Um "Lead" impactante.
+  2. Depoimentos de testemunhas aterrorizadas ou especialistas em ocultismo.
+  3. Uma teoria da conspiração sobre o governo estar encobrindo o fato.
+  
+  O tom deve ser sério, como uma transmissão de emergência ou furo de reportagem investigativa.
   Use formatação Markdown simples.`;
 
   const response = await ai.models.generateContent({

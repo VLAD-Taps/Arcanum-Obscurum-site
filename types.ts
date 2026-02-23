@@ -88,3 +88,10 @@ export interface NotificationPreferences {
   watchedTags: string[];
   watchedGrades: string[];
 }
+
+export interface DisasterAlertPreference {
+  enabled: boolean;
+  watchedTypes: string[];
+  watchedLocations: string[];
+  minSeverity: 'low' | 'medium' | 'high' | 'critical';
+}

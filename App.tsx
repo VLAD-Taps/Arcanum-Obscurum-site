@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio, AlertTriangle, X } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -10,7 +10,8 @@ import StoryViewer from './components/StoryViewer';
 import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
-import { CatalogObject, Story, NotificationPreferences } from './types';
+import { CatalogObject, Story, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
+import { fetchGlobalDisasters } from './services/geminiService';
 
 function App() {
   const [isDark, setIsDark] = useState(true);
@@ -37,10 +38,29 @@ function App() {
     };
   });
 
+  // Disaster Alert Preferences State
+  const [disasterAlertPrefs, setDisasterAlertPrefs] = useState<DisasterAlertPreference>(() => {
+    const saved = localStorage.getItem('arcanum_disaster_prefs');
+    return saved ? JSON.parse(saved) : {
+      enabled: false,
+      watchedTypes: [],
+      watchedLocations: [],
+      minSeverity: 'high'
+    };
+  });
+
+  // Disaster Events State (Global)
+  const [disasterEvents, setDisasterEvents] = useState<DisasterEvent[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<DisasterEvent[]>([]);
+
   // Save prefs whenever they change
   useEffect(() => {
     localStorage.setItem('arcanum_watch_prefs', JSON.stringify(notificationPrefs));
   }, [notificationPrefs]);
+
+  useEffect(() => {
+    localStorage.setItem('arcanum_disaster_prefs', JSON.stringify(disasterAlertPrefs));
+  }, [disasterAlertPrefs]);
   
   // Modal Animation State
   const [modalOrigin, setModalOrigin] = useState<{x: number, y: number} | null>(null);
@@ -52,6 +72,78 @@ function App() {
   // Infinite Scroll State
   const [visibleItems, setVisibleItems] = useState(12);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Global Disaster Fetching Logic
+  useEffect(() => {
+    const loadDisasters = async (append = false) => {
+      try {
+        const count = append ? 1 : 5;
+        const data = await fetchGlobalDisasters(count);
+        
+        if (!data || data.length === 0) return;
+
+        const newEvents = data.map((item: any) => ({
+          ...item,
+          id: Date.now().toString() + Math.random().toString().slice(2)
+        }));
+
+        setDisasterEvents(prev => {
+          // Keep max 50 events
+          const updated = append ? [...newEvents, ...prev] : newEvents;
+          return updated.slice(0, 50);
+        });
+
+        // Check for alerts
+        if (disasterAlertPrefs.enabled && newEvents.length > 0) {
+          const matchedEvents = newEvents.filter((event: DisasterEvent) => {
+            // Severity check logic
+            const severityLevels = ['low', 'medium', 'high', 'critical'];
+            const eventSeverityIndex = severityLevels.indexOf(event.severity);
+            const minSeverityIndex = severityLevels.indexOf(disasterAlertPrefs.minSeverity);
+            if (eventSeverityIndex < minSeverityIndex) return false;
+
+            // Type check
+            const typeMatch = disasterAlertPrefs.watchedTypes.length === 0 || 
+              disasterAlertPrefs.watchedTypes.some(t => event.type.toLowerCase().includes(t.toLowerCase()));
+            
+            // Location check
+            const locMatch = disasterAlertPrefs.watchedLocations.length === 0 || 
+              disasterAlertPrefs.watchedLocations.some(l => event.location.toLowerCase().includes(l.toLowerCase()));
+
+            return typeMatch && locMatch;
+          });
+
+          if (matchedEvents.length > 0) {
+            setActiveAlerts(prev => {
+              const newAlerts = [...matchedEvents, ...prev];
+              return newAlerts.slice(0, 3); // Limit to 3 active alerts
+            });
+            // Play alert sound
+            try {
+               const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3');
+               audio.volume = 0.3;
+               audio.play().catch(() => {});
+            } catch (e) {}
+          }
+        }
+
+      } catch (error) {
+        console.error("Erro ao carregar feed global", error);
+      }
+    };
+
+    // Initial load
+    if (disasterEvents.length === 0) {
+      loadDisasters();
+    }
+
+    // Interval for updates (every 60 seconds)
+    const interval = setInterval(() => {
+      loadDisasters(true);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [disasterAlertPrefs]); // Re-run if prefs change to ensure logic uses latest prefs (though mainly for the interval setup, logic inside uses current state if referenced correctly or re-instantiated)
 
   // Initialize theme
   useEffect(() => {
@@ -154,13 +246,36 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100 relative">
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Global Alert Banner */}
+      {activeAlerts.length > 0 && (
+        <div className="fixed top-16 left-0 w-full z-40 px-4 pt-2 pb-0 flex flex-col gap-2 pointer-events-none">
+          {activeAlerts.map((alert, idx) => (
+            <div key={alert.id} className="bg-red-600 text-white p-3 rounded shadow-lg shadow-red-900/50 flex justify-between items-center animate-in slide-in-from-top-5 duration-300 pointer-events-auto border-l-4 border-white">
+              <div className="flex items-center gap-3">
+                 <AlertTriangle className="animate-pulse" size={20} />
+                 <div>
+                   <p className="text-xs font-black uppercase tracking-widest">Alerta de Vigilância Detectado</p>
+                   <p className="text-sm font-bold leading-tight">{alert.description} <span className="opacity-75 text-xs">({alert.location})</span></p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => setActiveAlerts(prev => prev.filter(a => a.id !== alert.id))}
+                className="p-1 hover:bg-white/20 rounded"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Navbar - Red/White Theme */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 dark:bg-void/95 backdrop-blur-md border-b border-gray-200 dark:border-red-900/50 px-4 py-3 flex justify-between items-center shadow-sm">
@@ -204,7 +319,7 @@ function App() {
           <div className="space-y-6">
             
             {/* Feed de Noticias: Exibido APENAS se NÃO for admin */}
-            {!isAdmin && stories.length > 0 && (
+            {!isAdmin && (
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-gray-500 dark:text-red-400 mb-2 px-1 uppercase tracking-wide">Descobertas Recentes</h3>
                 <StoriesFeed 
@@ -369,7 +484,11 @@ function App() {
 
         {activeTab === 'news' && (
           <div className="max-w-4xl mx-auto w-full h-full">
-            <DisasterFeed />
+            <DisasterFeed 
+              events={disasterEvents} 
+              prefs={disasterAlertPrefs} 
+              onUpdatePrefs={setDisasterAlertPrefs} 
+            />
           </div>
         )}
 
