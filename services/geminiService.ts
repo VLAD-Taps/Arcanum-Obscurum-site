@@ -146,70 +146,151 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
   return null;
 };
 
-// 7. Global News Feed (Gemini 3 Flash - More Robust)
+// 7. Global News Feed (Gemini 3 Flash - More Robust & Varied)
 export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: string[] = []) => {
   const ai = getAiClient();
   
-  // Hardcoded fallback data in case of API failure
+  // Helper to generate random time
+  const randomTime = () => {
+    const h = Math.floor(Math.random() * 24).toString().padStart(2, '0');
+    const m = Math.floor(Math.random() * 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  // Expanded fallback data with more variety
   const fallbackNews = [
     {
       location: "Ponto Nemo, Pacífico",
       type: "ANOMALIA",
       severity: "critical",
       description: "Sinal de rádio desconhecido emitido do fundo do oceano repete sequência matemática.",
-      timestamp: "03:33"
+      timestamp: randomTime()
     },
     {
       location: "Deserto do Atacama, Chile",
       type: "TECNOCULTO",
       severity: "high",
       description: "Monólitos de metal vibrante surgem durante a noite; moradores relatam zumbido constante.",
-      timestamp: "05:12"
+      timestamp: randomTime()
     },
     {
       location: "Tóquio, Japão",
       type: "PSIÔNICO",
       severity: "medium",
       description: "Milhares de corvos pousam em silêncio absoluto no cruzamento de Shibuya.",
-      timestamp: "08:45"
+      timestamp: randomTime()
+    },
+    {
+      location: "Cairo, Egito",
+      type: "ARQUEOLOGIA",
+      severity: "high",
+      description: "Esfinge emite som de baixa frequência que causa alucinações em turistas.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Antártida",
+      type: "CLIMA",
+      severity: "critical",
+      description: "Nuvem verde estática cobre estação de pesquisa; comunicações cortadas.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Nova York, EUA",
+      type: "ANOMALIA",
+      severity: "medium",
+      description: "Gravidade invertida temporariamente no Central Park; objetos flutuam.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Sibéria, Rússia",
+      type: "BIO-HAZARD",
+      severity: "high",
+      description: "Cratera gigante revela fungo bioluminescente desconhecido pela ciência.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Londres, UK",
+      type: "TEMPORAL",
+      severity: "low",
+      description: "Relógios da cidade param simultaneamente por 3 minutos.",
+      timestamp: randomTime()
     }
   ];
 
+  // 1. Dynamic Themes for Variety - Randomly select themes to force the AI to explore different topics
+  const themes = [
+    "Falhas na Realidade (Glitch in the Matrix)",
+    "Criptozoologia Urbana (criaturas em metrôs, esgotos)",
+    "Sinais de Rádio do Espaço Profundo",
+    "Arqueologia Proibida / Artefatos Amaldiçoados",
+    "Fenômenos Meteorológicos Impossíveis (chuva de objetos, céu roxo)",
+    "Comportamento Animal Bizarro (animais falando, marchando em círculos)",
+    "Objetos Fora do Tempo (OOPARTS)",
+    "Silêncio Súbito em Grandes Áreas Urbanas",
+    "Luzes Não Identificadas no Oceano / USOs",
+    "Sonhos Compartilhados em Massa",
+    "Aparições de Doppelgängers ou Pessoas Sombra",
+    "Tecnologia Antiga Ativando Sozinha",
+    "Geometria Não-Euclidiana em Arquitetura",
+    "Plantas com Comportamento Agressivo/Senciente",
+    "Sinais de Satélites Hackeados por Entidades Desconhecidas",
+    "Desaparecimentos em Massa em Pequenas Vilas",
+    "Sons do Céu (The Hum) em Frequências Nocivas"
+  ];
+
+  // Pick 2 random themes to focus on for this request
+  const shuffledThemes = themes.sort(() => 0.5 - Math.random()).slice(0, 2);
+
   const recentContext = recentHeadlines.length > 0 
-    ? `EVITE: ${JSON.stringify(recentHeadlines.slice(0, 5))}.` 
+    ? `IMPORTANTE: NÃO repita estes assuntos recentes: ${JSON.stringify(recentHeadlines.slice(0, 15))}.` 
     : "";
 
-  const prompt = `Gere ${count} manchetes fictícias de "Breaking News" sobre eventos sobrenaturais/estranhos.
+  const prompt = `Atue como um monitor de anomalias globais para "O Observador Arcano". 
+  Gere ${count} alertas de "Breaking News" sobre eventos sobrenaturais ÚNICOS e INTRIGANTES.
+
+  TEMAS DESTA RODADA (Foque nestes para garantir variedade):
+  ${shuffledThemes.map(t => `- ${t}`).join('\n')}
+  
   ${recentContext}
   
-  REGRAS:
-  1. JSON Array puro.
-  2. Campos: location, type (ANOMALIA, CRIPTÍDEO, PSIÔNICO, TECNOCULTO), severity (low, medium, high, critical), description (MAX 15 palavras), timestamp (HH:mm).
-  3. SEM formatação markdown.`;
+  REGRAS CRÍTICAS:
+  1. Retorne APENAS um JSON Array puro.
+  2. Campos obrigatórios: 
+     - "location": Cidade/País real e específico.
+     - "type": Categoria curta (ex: ANOMALIA, BIO-HAZARD, PSIÔNICO, COSMICO, TECNOCULTO, TEMPORAL).
+     - "severity": "low", "medium", "high", ou "critical".
+     - "description": Manchete impactante, misteriosa e concisa (MÁXIMO 15 palavras).
+     - "timestamp": Hora atual (HH:mm).
+  3. SEM formatação markdown (sem \`\`\`json).
+  4. SEJA CRIATIVO! Invente eventos bizarros e nunca vistos antes. Evite clichês.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview', // Switching to 3-flash for better adherence
+      model: 'gemini-3-flash-preview', 
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 1000,
-        temperature: 0.7,
+        maxOutputTokens: 2000,
+        temperature: 0.9, // Higher temperature for more variety
       }
     });
 
     const text = response.text || "[]";
     try {
-      const parsed = JSON.parse(text);
+      // Clean potential markdown just in case
+      const cleanText = text.replace(/```json\n?|```/g, '').trim();
+      const parsed = JSON.parse(cleanText);
+      
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      throw new Error("Invalid JSON format");
+      throw new Error("Invalid JSON format or empty array");
     } catch (e) {
       console.warn("JSON parse failed, using fallback data.", e);
-      return fallbackNews;
+      // Return a random subset of fallback news to simulate variety even on failure
+      return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
     }
   } catch (e: any) {
     console.error("Failed to fetch news feed, using fallback.", e);
-    return fallbackNews;
+    return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
   }
 };
 
