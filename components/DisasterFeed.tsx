@@ -7,9 +7,10 @@ interface DisasterFeedProps {
   events: DisasterEvent[];
   prefs: DisasterAlertPreference;
   onUpdatePrefs: (prefs: DisasterAlertPreference) => void;
+  onRetry?: () => void;
 }
 
-const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePrefs }) => {
+const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePrefs, onRetry }) => {
   // Reading Modal State
   const [selectedEvent, setSelectedEvent] = useState<DisasterEvent | null>(null);
   const [articleContent, setArticleContent] = useState<string>('');
@@ -143,6 +144,14 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
             <Radio size={64} className="mx-auto mb-6 animate-pulse text-arcane-red" />
             <p className="font-bold text-lg">Interceptando sinais de rádio...</p>
             <p className="text-xs font-mono mt-2 text-gray-500">Decodificando frequências ocultas...</p>
+            {onRetry && (
+               <button 
+                 onClick={onRetry}
+                 className="mt-6 px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-full text-xs font-bold uppercase hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+               >
+                 Forçar Reconexão
+               </button>
+            )}
           </div>
         ) : (
           events.map((event) => (

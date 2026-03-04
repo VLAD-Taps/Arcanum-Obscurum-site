@@ -76,70 +76,77 @@ function App() {
   // Global Disaster Fetching Logic
   const recentHeadlinesRef = useRef<string[]>([]);
 
-  useEffect(() => {
-    const loadDisasters = async (append = false) => {
-      try {
-        const count = append ? 1 : 5;
-        // Pass recent headlines to avoid repetition
-        const data = await fetchGlobalDisasters(count, recentHeadlinesRef.current);
+  const loadDisasters = async (append = false) => {
+    console.log("Iniciando busca de desastres globais...");
+    try {
+      // Reduce initial load to 3 to prevent JSON truncation
+      const count = append ? 1 : 3;
+      // Pass recent headlines to avoid repetition
+      const data = await fetchGlobalDisasters(count, recentHeadlinesRef.current);
+      
+      console.log(`Recebidos ${data?.length || 0} eventos.`);
+      
+      if (!data || data.length === 0) {
+         console.warn("Nenhum evento recebido da IA.");
+         return;
+      }
+
+      const newEvents = data.map((item: any) => ({
+        ...item,
+        id: Date.now().toString() + Math.random().toString().slice(2)
+      }));
+
+      setDisasterEvents(prev => {
+        // Keep max 50 events
+        const updated = append ? [...newEvents, ...prev] : newEvents;
         
-        if (!data || data.length === 0) return;
+        // Update ref with new headlines
+        const newHeadlines = newEvents.map((e: any) => e.description);
+        recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 20); // Keep last 20
+        
+        return updated.slice(0, 50);
+      });
 
-        const newEvents = data.map((item: any) => ({
-          ...item,
-          id: Date.now().toString() + Math.random().toString().slice(2)
-        }));
+      // Check for alerts
+      if (disasterAlertPrefs.enabled && newEvents.length > 0) {
+        const matchedEvents = newEvents.filter((event: DisasterEvent) => {
+          // Severity check logic
+          const severityLevels = ['low', 'medium', 'high', 'critical'];
+          const eventSeverityIndex = severityLevels.indexOf(event.severity);
+          const minSeverityIndex = severityLevels.indexOf(disasterAlertPrefs.minSeverity);
+          if (eventSeverityIndex < minSeverityIndex) return false;
 
-        setDisasterEvents(prev => {
-          // Keep max 50 events
-          const updated = append ? [...newEvents, ...prev] : newEvents;
+          // Type check
+          const typeMatch = disasterAlertPrefs.watchedTypes.length === 0 || 
+            disasterAlertPrefs.watchedTypes.some(t => event.type.toLowerCase().includes(t.toLowerCase()));
           
-          // Update ref with new headlines
-          const newHeadlines = newEvents.map((e: any) => e.description);
-          recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 20); // Keep last 20
-          
-          return updated.slice(0, 50);
+          // Location check
+          const locMatch = disasterAlertPrefs.watchedLocations.length === 0 || 
+            disasterAlertPrefs.watchedLocations.some(l => event.location.toLowerCase().includes(l.toLowerCase()));
+
+          return typeMatch && locMatch;
         });
 
-        // Check for alerts
-        if (disasterAlertPrefs.enabled && newEvents.length > 0) {
-          const matchedEvents = newEvents.filter((event: DisasterEvent) => {
-            // Severity check logic
-            const severityLevels = ['low', 'medium', 'high', 'critical'];
-            const eventSeverityIndex = severityLevels.indexOf(event.severity);
-            const minSeverityIndex = severityLevels.indexOf(disasterAlertPrefs.minSeverity);
-            if (eventSeverityIndex < minSeverityIndex) return false;
-
-            // Type check
-            const typeMatch = disasterAlertPrefs.watchedTypes.length === 0 || 
-              disasterAlertPrefs.watchedTypes.some(t => event.type.toLowerCase().includes(t.toLowerCase()));
-            
-            // Location check
-            const locMatch = disasterAlertPrefs.watchedLocations.length === 0 || 
-              disasterAlertPrefs.watchedLocations.some(l => event.location.toLowerCase().includes(l.toLowerCase()));
-
-            return typeMatch && locMatch;
+        if (matchedEvents.length > 0) {
+          setActiveAlerts(prev => {
+            const newAlerts = [...matchedEvents, ...prev];
+            return newAlerts.slice(0, 3); // Limit to 3 active alerts
           });
-
-          if (matchedEvents.length > 0) {
-            setActiveAlerts(prev => {
-              const newAlerts = [...matchedEvents, ...prev];
-              return newAlerts.slice(0, 3); // Limit to 3 active alerts
-            });
-            // Play alert sound
-            try {
-               const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3');
-               audio.volume = 0.3;
-               audio.play().catch(() => {});
-            } catch (e) {}
-          }
+          // Play alert sound
+          try {
+             const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3');
+             audio.volume = 0.3;
+             audio.play().catch(() => {});
+          } catch (e) {}
         }
-
-      } catch (error) {
-        console.error("Erro ao carregar feed global", error);
       }
-    };
 
+    } catch (error) {
+      console.error("Erro ao carregar feed global", error);
+    }
+  };
+
+  useEffect(() => {
     // Initial load
     if (disasterEvents.length === 0) {
       loadDisasters();
@@ -514,6 +521,7 @@ function App() {
               events={disasterEvents} 
               prefs={disasterAlertPrefs} 
               onUpdatePrefs={setDisasterAlertPrefs} 
+              onRetry={() => loadDisasters(false)}
             />
           </div>
         )}

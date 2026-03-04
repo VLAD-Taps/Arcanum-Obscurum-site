@@ -3,7 +3,12 @@ import { AspectRatio } from "../types";
 
 // Helper to get client with current key safely
 const getAiClient = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!apiKey) {
+    console.error("API Key is missing! Please ensure GEMINI_API_KEY is set.");
+    throw new Error("API Key is missing");
+  }
+  return new GoogleGenAI({ apiKey });
 };
 
 // 1. Fast AI Responses (Gemini 2.5 Flash-Lite)
@@ -141,81 +146,70 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
   return null;
 };
 
-// 7. Global News Feed (Gemini 2.5 Flash - Faster & Cheaper)
-export const fetchGlobalDisasters = async (count: number = 5, recentHeadlines: string[] = []) => {
+// 7. Global News Feed (Gemini 3 Flash - More Robust)
+export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: string[] = []) => {
   const ai = getAiClient();
   
-  const recentContext = recentHeadlines.length > 0 
-    ? `EVITE REPETIR os seguintes eventos recentes: ${JSON.stringify(recentHeadlines.slice(0, 15))}.` 
-    : "";
-
-  // Dynamic Categories to force variety
-  const allCategories = [
-    "Anomalias Temporais (loops, objetos fora do tempo)",
-    "Criptozoologia Urbana (criaturas em metrôs, esgotos)",
-    "Fenômenos Psíquicos em Massa (sonhos compartilhados)",
-    "Artefatos Amaldiçoados Ativados (museus, leilões)",
-    "Sinais Tecnológicos Bizarros (IA senciente, hacks sobrenaturais)",
-    "Clima Impossível (chuva de objetos, nuvens sólidas)",
-    "Portais Dimensionais (falhas na realidade)",
-    "Botânica Monstruosa (plantas carnívoras gigantes)",
-    "Geometria Não-Euclidiana em Prédios",
-    "Sussurros Coletivos vindos do Céu",
-    "Animais com Comportamento Humano",
-    "Objetos Inanimados Ganhando Vida",
-    "Silêncio Absoluto em Cidades Movimentadas",
-    "Cores Indescritíveis aparecendo no horizonte"
+  // Hardcoded fallback data in case of API failure
+  const fallbackNews = [
+    {
+      location: "Ponto Nemo, Pacífico",
+      type: "ANOMALIA",
+      severity: "critical",
+      description: "Sinal de rádio desconhecido emitido do fundo do oceano repete sequência matemática.",
+      timestamp: "03:33"
+    },
+    {
+      location: "Deserto do Atacama, Chile",
+      type: "TECNOCULTO",
+      severity: "high",
+      description: "Monólitos de metal vibrante surgem durante a noite; moradores relatam zumbido constante.",
+      timestamp: "05:12"
+    },
+    {
+      location: "Tóquio, Japão",
+      type: "PSIÔNICO",
+      severity: "medium",
+      description: "Milhares de corvos pousam em silêncio absoluto no cruzamento de Shibuya.",
+      timestamp: "08:45"
+    }
   ];
 
-  // Shuffle and pick 3 random categories to focus on this time
-  const shuffled = allCategories.sort(() => 0.5 - Math.random());
-  const selectedCategories = shuffled.slice(0, 4);
+  const recentContext = recentHeadlines.length > 0 
+    ? `EVITE: ${JSON.stringify(recentHeadlines.slice(0, 5))}.` 
+    : "";
 
-  const prompt = `Atue como um jornalista de um jornal secreto chamado "O Observador Arcano". 
-  Gere uma lista de ${count} manchetes urgentes (Breaking News) sobre FENÔMENOS INEXPLICÁVEIS e EVENTOS ANORMAIS ocorrendo AGORA no mundo.
-  
+  const prompt = `Gere ${count} manchetes fictícias de "Breaking News" sobre eventos sobrenaturais/estranhos.
   ${recentContext}
-
-  Nesta edição, foque especialmente nestas categorias (mas pode variar):
-  ${selectedCategories.map(c => `- ${c}`).join('\n')}
-
-  Use cidades reais e variadas (evite repetir as mesmas capitais). Seja criativo, sério, alarmista e misterioso.
-  Retorne APENAS um JSON array.
-  Estrutura: [{ "location": string, "type": string (ex: "ANOMALIA", "CRIPTÍDEO", "PSIÔNICO", "TECNOCULTO"), "severity": "low"|"medium"|"high"|"critical", "description": string (manchete curta e impactante), "timestamp": string (horario HH:mm) }]`;
+  
+  REGRAS:
+  1. JSON Array puro.
+  2. Campos: location, type (ANOMALIA, CRIPTÍDEO, PSIÔNICO, TECNOCULTO), severity (low, medium, high, critical), description (MAX 15 palavras), timestamp (HH:mm).
+  3. SEM formatação markdown.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview', // Switching to 3-flash for better adherence
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 2000,
-        temperature: 1.2, // High creativity
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              location: { type: Type.STRING },
-              type: { type: Type.STRING },
-              severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
-              description: { type: Type.STRING },
-              timestamp: { type: Type.STRING }
-            }
-          }
-        }
+        maxOutputTokens: 1000,
+        temperature: 0.7,
       }
     });
 
-    return JSON.parse(response.text || "[]");
-  } catch (e: any) {
-    // Handle Rate Limits gracefully
-    if (e.message?.includes('429') || e.status === 429) {
-      console.warn("Quota exceeded for news feed. Pausing updates temporarily.");
-      return [];
+    const text = response.text || "[]";
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      throw new Error("Invalid JSON format");
+    } catch (e) {
+      console.warn("JSON parse failed, using fallback data.", e);
+      return fallbackNews;
     }
-    console.error("Failed to fetch/parse news feed", e);
-    return [];
+  } catch (e: any) {
+    console.error("Failed to fetch news feed, using fallback.", e);
+    return fallbackNews;
   }
 };
 
