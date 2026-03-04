@@ -148,8 +148,6 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
 
 // 7. Global News Feed (Gemini 3 Flash - More Robust & Varied)
 export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: string[] = []) => {
-  const ai = getAiClient();
-  
   // Helper to generate random time
   const randomTime = () => {
     const h = Math.floor(Math.random() * 24).toString().padStart(2, '0');
@@ -217,54 +215,58 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
     }
   ];
 
-  // 1. Dynamic Themes for Variety - Randomly select themes to force the AI to explore different topics
-  const themes = [
-    "Falhas na Realidade (Glitch in the Matrix)",
-    "Criptozoologia Urbana (criaturas em metrôs, esgotos)",
-    "Sinais de Rádio do Espaço Profundo",
-    "Arqueologia Proibida / Artefatos Amaldiçoados",
-    "Fenômenos Meteorológicos Impossíveis (chuva de objetos, céu roxo)",
-    "Comportamento Animal Bizarro (animais falando, marchando em círculos)",
-    "Objetos Fora do Tempo (OOPARTS)",
-    "Silêncio Súbito em Grandes Áreas Urbanas",
-    "Luzes Não Identificadas no Oceano / USOs",
-    "Sonhos Compartilhados em Massa",
-    "Aparições de Doppelgängers ou Pessoas Sombra",
-    "Tecnologia Antiga Ativando Sozinha",
-    "Geometria Não-Euclidiana em Arquitetura",
-    "Plantas com Comportamento Agressivo/Senciente",
-    "Sinais de Satélites Hackeados por Entidades Desconhecidas",
-    "Desaparecimentos em Massa em Pequenas Vilas",
-    "Sons do Céu (The Hum) em Frequências Nocivas"
-  ];
-
-  // Pick 2 random themes to focus on for this request
-  const shuffledThemes = themes.sort(() => 0.5 - Math.random()).slice(0, 2);
-
-  const recentContext = recentHeadlines.length > 0 
-    ? `IMPORTANTE: NÃO repita estes assuntos recentes: ${JSON.stringify(recentHeadlines.slice(0, 15))}.` 
-    : "";
-
-  const prompt = `Atue como um monitor de anomalias globais para "O Observador Arcano". 
-  Gere ${count} alertas de "Breaking News" sobre eventos sobrenaturais ÚNICOS e INTRIGANTES.
-
-  TEMAS DESTA RODADA (Foque nestes para garantir variedade):
-  ${shuffledThemes.map(t => `- ${t}`).join('\n')}
-  
-  ${recentContext}
-  
-  REGRAS CRÍTICAS:
-  1. Retorne APENAS um JSON Array puro.
-  2. Campos obrigatórios: 
-     - "location": Cidade/País real e específico.
-     - "type": Categoria curta (ex: ANOMALIA, BIO-HAZARD, PSIÔNICO, COSMICO, TECNOCULTO, TEMPORAL).
-     - "severity": "low", "medium", "high", ou "critical".
-     - "description": Manchete impactante, misteriosa e concisa (MÁXIMO 15 palavras).
-     - "timestamp": Hora atual (HH:mm).
-  3. SEM formatação markdown (sem \`\`\`json).
-  4. SEJA CRIATIVO! Invente eventos bizarros e nunca vistos antes. Evite clichês.`;
-
   try {
+    // Move client initialization inside try/catch to handle missing API keys gracefully
+    const ai = getAiClient();
+    if (!ai) throw new Error("AI Client not initialized");
+
+    // 1. Dynamic Themes for Variety - Randomly select themes to force the AI to explore different topics
+    const themes = [
+      "Falhas na Realidade (Glitch in the Matrix)",
+      "Criptozoologia Urbana (criaturas em metrôs, esgotos)",
+      "Sinais de Rádio do Espaço Profundo",
+      "Arqueologia Proibida / Artefatos Amaldiçoados",
+      "Fenômenos Meteorológicos Impossíveis (chuva de objetos, céu roxo)",
+      "Comportamento Animal Bizarro (animais falando, marchando em círculos)",
+      "Objetos Fora do Tempo (OOPARTS)",
+      "Silêncio Súbito em Grandes Áreas Urbanas",
+      "Luzes Não Identificadas no Oceano / USOs",
+      "Sonhos Compartilhados em Massa",
+      "Aparições de Doppelgängers ou Pessoas Sombra",
+      "Tecnologia Antiga Ativando Sozinha",
+      "Geometria Não-Euclidiana em Arquitetura",
+      "Plantas com Comportamento Agressivo/Senciente",
+      "Sinais de Satélites Hackeados por Entidades Desconhecidas",
+      "Desaparecimentos em Massa em Pequenas Vilas",
+      "Sons do Céu (The Hum) em Frequências Nocivas"
+    ];
+
+    // Pick 2 random themes to focus on for this request
+    const shuffledThemes = themes.sort(() => 0.5 - Math.random()).slice(0, 2);
+
+    const recentContext = recentHeadlines.length > 0 
+      ? `IMPORTANTE: NÃO repita estes assuntos recentes: ${JSON.stringify(recentHeadlines.slice(0, 15))}.` 
+      : "";
+
+    const prompt = `Atue como um monitor de anomalias globais para "O Observador Arcano". 
+    Gere ${count} alertas de "Breaking News" sobre eventos sobrenaturais ÚNICOS e INTRIGANTES.
+
+    TEMAS DESTA RODADA (Foque nestes para garantir variedade):
+    ${shuffledThemes.map(t => `- ${t}`).join('\n')}
+    
+    ${recentContext}
+    
+    REGRAS CRÍTICAS:
+    1. Retorne APENAS um JSON Array puro.
+    2. Campos obrigatórios: 
+       - "location": Cidade/País real e específico.
+       - "type": Categoria curta (ex: ANOMALIA, BIO-HAZARD, PSIÔNICO, COSMICO, TECNOCULTO, TEMPORAL).
+       - "severity": "low", "medium", "high", ou "critical".
+       - "description": Manchete impactante, misteriosa e concisa (MÁXIMO 15 palavras).
+       - "timestamp": Hora atual (HH:mm).
+    3. SEM formatação markdown (sem \`\`\`json).
+    4. SEJA CRIATIVO! Invente eventos bizarros e nunca vistos antes. Evite clichês.`;
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview', 
       contents: prompt,
@@ -289,7 +291,7 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
       return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
     }
   } catch (e: any) {
-    console.error("Failed to fetch news feed, using fallback.", e);
+    console.error("Failed to fetch news feed (API Error or Missing Key), using fallback.", e);
     return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
   }
 };
