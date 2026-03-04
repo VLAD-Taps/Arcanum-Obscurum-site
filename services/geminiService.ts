@@ -142,21 +142,46 @@ export const generateObjectImage = async (prompt: string, aspectRatio: AspectRat
 };
 
 // 7. Global News Feed (Gemini 2.5 Flash - Faster & Cheaper)
-export const fetchGlobalDisasters = async (count: number = 5) => {
+export const fetchGlobalDisasters = async (count: number = 5, recentHeadlines: string[] = []) => {
   const ai = getAiClient();
+  
+  const recentContext = recentHeadlines.length > 0 
+    ? `EVITE REPETIR os seguintes eventos recentes: ${JSON.stringify(recentHeadlines.slice(0, 15))}.` 
+    : "";
+
+  // Dynamic Categories to force variety
+  const allCategories = [
+    "Anomalias Temporais (loops, objetos fora do tempo)",
+    "Criptozoologia Urbana (criaturas em metrôs, esgotos)",
+    "Fenômenos Psíquicos em Massa (sonhos compartilhados)",
+    "Artefatos Amaldiçoados Ativados (museus, leilões)",
+    "Sinais Tecnológicos Bizarros (IA senciente, hacks sobrenaturais)",
+    "Clima Impossível (chuva de objetos, nuvens sólidas)",
+    "Portais Dimensionais (falhas na realidade)",
+    "Botânica Monstruosa (plantas carnívoras gigantes)",
+    "Geometria Não-Euclidiana em Prédios",
+    "Sussurros Coletivos vindos do Céu",
+    "Animais com Comportamento Humano",
+    "Objetos Inanimados Ganhando Vida",
+    "Silêncio Absoluto em Cidades Movimentadas",
+    "Cores Indescritíveis aparecendo no horizonte"
+  ];
+
+  // Shuffle and pick 3 random categories to focus on this time
+  const shuffled = allCategories.sort(() => 0.5 - Math.random());
+  const selectedCategories = shuffled.slice(0, 4);
+
   const prompt = `Atue como um jornalista de um jornal secreto chamado "O Observador Arcano". 
   Gere uma lista de ${count} manchetes urgentes (Breaking News) sobre FENÔMENOS INEXPLICÁVEIS e EVENTOS ANORMAIS ocorrendo AGORA no mundo.
   
-  Os tópicos devem ser estritamente paranormais ou bizarros:
-  - Anomalias físicas (ex: gravidade invertida, sombras vivas).
-  - Avistamentos de entidades não catalogadas (criptídeos, seres interdimensionais).
-  - Eventos climáticos impossíveis (ex: chuva de peixes, nuvens sólidas).
-  - Desaparecimentos em massa ou histeria coletiva inexplicável.
-  - Sinais de rádio vindos do centro da Terra ou do espaço profundo.
+  ${recentContext}
 
-  Use cidades reais. Seja criativo, sério, alarmista e misterioso.
+  Nesta edição, foque especialmente nestas categorias (mas pode variar):
+  ${selectedCategories.map(c => `- ${c}`).join('\n')}
+
+  Use cidades reais e variadas (evite repetir as mesmas capitais). Seja criativo, sério, alarmista e misterioso.
   Retorne APENAS um JSON array.
-  Estrutura: [{ "location": string, "type": string (ex: "ANOMALIA", "CRIPTÍDEO", "PSIÔNICO"), "severity": "low"|"medium"|"high"|"critical", "description": string (manchete curta), "timestamp": string (horario HH:mm) }]`;
+  Estrutura: [{ "location": string, "type": string (ex: "ANOMALIA", "CRIPTÍDEO", "PSIÔNICO", "TECNOCULTO"), "severity": "low"|"medium"|"high"|"critical", "description": string (manchete curta e impactante), "timestamp": string (horario HH:mm) }]`;
 
   try {
     const response = await ai.models.generateContent({
@@ -164,7 +189,8 @@ export const fetchGlobalDisasters = async (count: number = 5) => {
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 2000, // Prevent huge responses
+        maxOutputTokens: 2000,
+        temperature: 1.2, // High creativity
         responseSchema: {
           type: Type.ARRAY,
           items: {

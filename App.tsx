@@ -74,11 +74,14 @@ function App() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Global Disaster Fetching Logic
+  const recentHeadlinesRef = useRef<string[]>([]);
+
   useEffect(() => {
     const loadDisasters = async (append = false) => {
       try {
         const count = append ? 1 : 5;
-        const data = await fetchGlobalDisasters(count);
+        // Pass recent headlines to avoid repetition
+        const data = await fetchGlobalDisasters(count, recentHeadlinesRef.current);
         
         if (!data || data.length === 0) return;
 
@@ -90,6 +93,11 @@ function App() {
         setDisasterEvents(prev => {
           // Keep max 50 events
           const updated = append ? [...newEvents, ...prev] : newEvents;
+          
+          // Update ref with new headlines
+          const newHeadlines = newEvents.map((e: any) => e.description);
+          recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 20); // Keep last 20
+          
           return updated.slice(0, 50);
         });
 
