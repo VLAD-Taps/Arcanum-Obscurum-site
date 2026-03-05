@@ -298,26 +298,51 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
 
 // 8. Generate Full News Report (Gemini 3 Pro)
 export const generateFullNewsReport = async (event: any) => {
-  const ai = getAiClient();
-  const prompt = `Escreva uma matéria jornalística completa e sensacionalista (aprox. 3 parágrafos) para o "O Observador Arcano" sobre:
+  try {
+    const ai = getAiClient();
+    if (!ai) throw new Error("AI Client not initialized");
+
+    const prompt = `Escreva uma matéria jornalística completa e sensacionalista (aprox. 3 parágrafos) para o "O Observador Arcano" sobre:
+    
+    Manchete: ${event.description}
+    Tipo: ${event.type}
+    Local: ${event.location}
+    Severidade: ${event.severity}
   
-  Manchete: ${event.description}
-  Tipo: ${event.type}
-  Local: ${event.location}
-  Severidade: ${event.severity}
-
-  Inclua:
-  1. Um "Lead" impactante.
-  2. Depoimentos de testemunhas aterrorizadas ou especialistas em ocultismo.
-  3. Uma teoria da conspiração sobre o governo estar encobrindo o fato.
+    Inclua:
+    1. Um "Lead" impactante.
+    2. Depoimentos de testemunhas aterrorizadas ou especialistas em ocultismo.
+    3. Uma teoria da conspiração sobre o governo estar encobrindo o fato.
+    
+    O tom deve ser sério, como uma transmissão de emergência ou furo de reportagem investigativa.
+    Use formatação Markdown simples.`;
   
-  O tom deve ser sério, como uma transmissão de emergência ou furo de reportagem investigativa.
-  Use formatação Markdown simples.`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+  
+    return response.text;
+  } catch (error) {
+    console.error("Failed to generate full report, using procedural fallback.", error);
+    
+    // Procedural Fallback Generator
+    return `## ${event.description}
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt,
-  });
+**LOCAL:** ${event.location}
+**CLASSIFICAÇÃO:** ${event.type}
+**NÍVEL DE AMEAÇA:** ${event.severity.toUpperCase()}
 
-  return response.text;
+**(TRANSMISSÃO DE EMERGÊNCIA - SINAL DE BACKUP)**
+
+Nossas fontes em campo confirmam a ocorrência de um evento anômalo de alta magnitude em ${event.location}. Relatórios preliminares indicam que a situação escalou rapidamente, desafiando as explicações convencionais das autoridades locais.
+
+"Foi como se a realidade se doesse ao meio," relatou uma testemunha ocular que preferiu manter o anonimato por medo de represálias. "As leis da física simplesmente deixaram de funcionar por alguns instantes."
+
+O Observador Arcano detectou picos de energia psiônica coincidentes com o horário do evento. Enquanto o governo oficial atribui o incidente a "falhas na infraestrutura" ou "fenômenos naturais raros", nossos especialistas acreditam se tratar de uma ruptura na membrana dimensional.
+
+Equipes de contenção foram avistadas isolando o perímetro. Recomendamos que a população mantenha distância e relate qualquer atividade suspeita adicional através dos canais criptografados.
+
+*A verdade está nas sombras.*`;
+  }
 };
