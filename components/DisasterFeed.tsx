@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2, Filter, Calendar, ArrowDownUp } from 'lucide-react';
 import { generateFullNewsReport } from '../services/geminiService';
 import { DisasterEvent, DisasterAlertPreference } from '../types';
 
@@ -20,6 +20,11 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [newType, setNewType] = useState('');
   const [newLocation, setNewLocation] = useState('');
+
+  // Filter & Sort State
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   // Handle Event Click (Generate Report)
   const handleEventClick = async (event: DisasterEvent) => {
@@ -80,6 +85,40 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
     });
   };
 
+  // Filtered & Sorted Events
+  const filteredEvents = useMemo(() => {
+    let result = [...events];
+
+    // Filter by Type
+    if (filterType !== 'all') {
+      result = result.filter(e => e.type === filterType);
+    }
+
+    // Filter by Severity
+    if (filterSeverity !== 'all') {
+      result = result.filter(e => e.severity === filterSeverity);
+    }
+
+    // Sort by Time
+    result.sort((a, b) => {
+      // Assuming timestamp is HH:mm string, simple string comparison works for same day
+      // For more complex dates, we'd need parsing
+      if (sortOrder === 'newest') {
+        return b.timestamp.localeCompare(a.timestamp);
+      } else {
+        return a.timestamp.localeCompare(b.timestamp);
+      }
+    });
+
+    return result;
+  }, [events, filterType, filterSeverity, sortOrder]);
+
+  // Get unique types for filter dropdown
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(events.map(e => e.type));
+    return Array.from(types);
+  }, [events]);
+
   return (
     <div className="h-full flex flex-col space-y-4 pb-24 relative overflow-hidden">
       
@@ -137,6 +176,50 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-2 px-1">
+        <div className="relative flex-1 min-w-[120px]">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+          >
+            <option value="all">Todas Categorias</option>
+            {uniqueTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+          <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
+
+        <div className="relative flex-1 min-w-[120px]">
+          <select
+            value={filterSeverity}
+            onChange={(e) => setFilterSeverity(e.target.value)}
+            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+          >
+            <option value="all">Qualquer Severidade</option>
+            <option value="low">Baixa</option>
+            <option value="medium">Média</option>
+            <option value="high">Alta</option>
+            <option value="critical">Crítica</option>
+          </select>
+          <AlertTriangle size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
+
+        <div className="relative flex-1 min-w-[120px]">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+          >
+            <option value="newest">Mais Recentes</option>
+            <option value="oldest">Mais Antigos</option>
+          </select>
+          <ArrowDownUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
+      </div>
+
       {/* News Feed List */}
       <div className="flex-1 space-y-3 overflow-y-auto px-1 scrollbar-hide">
         {events.length === 0 ? (
@@ -153,8 +236,19 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
                </button>
             )}
           </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="text-center py-10 opacity-50">
+            <Filter size={48} className="mx-auto mb-4 text-gray-400" />
+            <p className="font-bold text-sm">Nenhum evento encontrado com estes filtros.</p>
+            <button 
+              onClick={() => { setFilterType('all'); setFilterSeverity('all'); }}
+              className="mt-4 text-arcane-red text-xs font-bold uppercase hover:underline"
+            >
+              Limpar Filtros
+            </button>
+          </div>
         ) : (
-          events.map((event) => (
+          filteredEvents.map((event) => (
             <div 
               key={event.id}
               onClick={() => handleEventClick(event)}
