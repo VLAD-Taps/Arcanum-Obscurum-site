@@ -71,6 +71,7 @@ function App() {
   
   // Infinite Scroll State
   const [visibleItems, setVisibleItems] = useState(12);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Global Disaster Fetching Logic
@@ -252,10 +253,20 @@ function App() {
 
   // Infinite Scroll Handler
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (activeTab !== 'catalog') return;
+
     const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    
+    // Trigger load when within 100px of bottom
     if (scrollHeight - scrollTop <= clientHeight + 100) {
-      if (visibleItems < catalog.length) {
-        setVisibleItems(prev => prev + 12);
+      if (visibleItems < catalog.length && !isLoadingMore) {
+        setIsLoadingMore(true);
+        
+        // Simulate network delay for smoother UX and to prevent rapid-fire updates
+        setTimeout(() => {
+          setVisibleItems(prev => prev + 12);
+          setIsLoadingMore(false);
+        }, 500);
       }
     }
   };
@@ -485,7 +496,7 @@ function App() {
             )}
             
             {/* Loading Indicator for Infinite Scroll */}
-            {visibleItems < catalog.length && (
+            {isLoadingMore && (
                <div className="py-4 text-center text-arcane-red font-bold text-sm animate-pulse">
                  Carregando arquivos adicionais...
                </div>
