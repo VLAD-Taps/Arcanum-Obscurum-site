@@ -337,12 +337,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100 relative">
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
 
       {/* Global Alert Banner - Enhanced */}
       {activeAlerts.length > 0 && (
@@ -486,11 +480,6 @@ function App() {
                   <div 
                     key={item.id} 
                     onClick={(e) => handleCardClick(e, item)}
-                    style={{
-                      animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                      animationDelay: `${(index % 12) * 0.05}s`, // Stagger delay for up to 12 items at a time
-                      opacity: 0 // Start invisible
-                    }}
                     className="bg-white dark:bg-void-light rounded overflow-hidden shadow-lg border border-gray-200 dark:border-red-900/40 hover:border-arcane-red dark:hover:border-arcane-red transition-all group cursor-pointer hover:shadow-xl hover:shadow-red-900/20 flex flex-col h-full transform hover:-translate-y-1 duration-200"
                   >
                     {/* Increased height for prominent image */}
