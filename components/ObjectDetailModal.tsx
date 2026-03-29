@@ -8,9 +8,10 @@ interface ObjectDetailModalProps {
   onClose: () => void;
   onDelete: (id: string) => void;
   originCoords: { x: number; y: number } | null;
+  isAdmin?: boolean;
 }
 
-const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, onClose, onDelete, originCoords }) => {
+const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, onClose, onDelete, originCoords, isAdmin }) => {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   if (!isOpen || !object) return null;
@@ -93,13 +94,15 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
           )}
           
           <div className="absolute top-4 right-4 flex gap-2">
-            <button 
-              onClick={handleDeleteClick}
-              className="p-2 bg-black/50 hover:bg-red-600 text-white rounded-full transition-colors"
-              title="Excluir Artefato"
-            >
-              <Trash2 size={20} />
-            </button>
+            {isAdmin && (
+              <button 
+                onClick={handleDeleteClick}
+                className="p-2 bg-black/50 hover:bg-red-600 text-white rounded-full transition-colors"
+                title="Excluir Artefato"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
             <button 
               onClick={onClose}
               className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"

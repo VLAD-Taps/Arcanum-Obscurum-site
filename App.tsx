@@ -643,6 +643,7 @@ function App() {
         onClose={() => setSelectedObject(null)}
         onDelete={handleDeleteObject}
         originCoords={modalOrigin}
+        isAdmin={isAdmin}
       />
 
       <SettingsModal 
