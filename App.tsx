@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio, AlertTriangle, X } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio, AlertTriangle, X, BookOpen } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -337,6 +337,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100 relative">
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
       {/* Global Alert Banner - Enhanced */}
       {activeAlerts.length > 0 && (
@@ -382,8 +388,8 @@ function App() {
       {/* Navbar - Red/White Theme */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 dark:bg-void/95 backdrop-blur-md border-b border-gray-200 dark:border-red-900/50 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-arcane-red rounded flex items-center justify-center shadow-lg shadow-red-600/20">
-            <Box className="text-white w-5 h-5" />
+          <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 dark:border-gray-800">
+            <BookOpen className="text-white dark:text-black w-4 h-4" />
           </div>
           <h1 className="text-xl font-black text-arcane-red tracking-widest uppercase flex items-center gap-3">
             ARCANUM OBSCURUM
@@ -480,6 +486,11 @@ function App() {
                   <div 
                     key={item.id} 
                     onClick={(e) => handleCardClick(e, item)}
+                    style={{
+                      animation: 'fadeInUp 0.4s ease-out forwards',
+                      animationDelay: `${(index % 12) * 0.05}s`,
+                      opacity: 0
+                    }}
                     className="bg-white dark:bg-void-light rounded overflow-hidden shadow-lg border border-gray-200 dark:border-red-900/40 hover:border-arcane-red dark:hover:border-arcane-red transition-all group cursor-pointer hover:shadow-xl hover:shadow-red-900/20 flex flex-col h-full transform hover:-translate-y-1 duration-200"
                   >
                     {/* Increased height for prominent image */}
@@ -505,12 +516,6 @@ function App() {
                           {item.bearer.rank === 'Concept' ? <Crown size={12} fill="currentColor" /> : <Shield size={12} fill="currentColor" />}
                         </div>
                       )}
-
-                      <div className="absolute top-2 right-2">
-                         <span className="bg-arcane-red text-white text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase">
-                           {new Date(item.dateAdded).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}
-                         </span>
-                      </div>
                     </div>
                     
                     <div className="p-4 flex flex-col flex-1">
