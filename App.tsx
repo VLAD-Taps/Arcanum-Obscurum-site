@@ -12,6 +12,42 @@ import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
 import { CatalogObject, Story, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
 import { fetchGlobalDisasters } from './services/geminiService';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { db } from './firebase';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: any;
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: false,
+      isAnonymous: true,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  // Don't throw to avoid crashing the app, just log it.
+}
 
 function App() {
   const [isDark, setIsDark] = useState(true);
@@ -87,6 +123,22 @@ function App() {
       item.tags.some(tag => tag.toLowerCase().includes(query))
     );
   }, [catalog, catalogSearchQuery]);
+
+  // Firebase Realtime Sync
+  useEffect(() => {
+    const q = query(collection(db, 'catalog'), orderBy('dateAdded', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: CatalogObject[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as CatalogObject);
+      });
+      setCatalog(items);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'catalog');
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Global Disaster Fetching Logic
   const recentHeadlinesRef = useRef<string[]>([]);
@@ -230,41 +282,52 @@ function App() {
     window.alert("Estado do Sistema salvo com sucesso.");
   };
 
-  const handleSaveObject = (obj: CatalogObject) => {
-    setCatalog(prev => [obj, ...prev]);
-    // Trigger notification badge
-    setHasNotification(true);
-    localStorage.setItem('arcanum_has_notification', 'true');
-    
-    // Check Watchlist logic
-    let alertMessage = "Registro arquivado com sucesso no Acervo.";
-    
-    if (notificationPrefs.enabled) {
-      const tagMatch = obj.tags.some(tag => 
-        notificationPrefs.watchedTags.some(watched => watched.toLowerCase() === tag.toLowerCase())
-      );
-      const gradeMatch = obj.threatGrade && notificationPrefs.watchedGrades.includes(obj.threatGrade);
+  const handleSaveObject = async (obj: CatalogObject) => {
+    try {
+      await setDoc(doc(db, 'catalog', obj.id), obj);
+      
+      // Trigger notification badge
+      setHasNotification(true);
+      localStorage.setItem('arcanum_has_notification', 'true');
+      
+      // Check Watchlist logic
+      let alertMessage = "Registro arquivado com sucesso no Acervo.";
+      
+      if (notificationPrefs.enabled) {
+        const tagMatch = obj.tags.some(tag => 
+          notificationPrefs.watchedTags.some(watched => watched.toLowerCase() === tag.toLowerCase())
+        );
+        const gradeMatch = obj.threatGrade && notificationPrefs.watchedGrades.includes(obj.threatGrade);
 
-      if (tagMatch || gradeMatch) {
-        alertMessage = `⚠️ ALERTA DE VIGILÂNCIA ⚠️\n\nO objeto "${obj.title}" corresponde aos seus protocolos de monitoramento!\n` +
-                       (gradeMatch ? `• Nível de Ameaça: ${obj.threatGrade}\n` : '') +
-                       (tagMatch ? `• Tags Suspeitas Detectadas` : '');
-        
-        // Play a subtle sound or just rely on the alert
-        try {
-          const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3'); // Placeholder short beep
-          audio.volume = 0.2;
-          audio.play().catch(e => console.log('Audio play blocked', e));
-        } catch (e) {}
+        if (tagMatch || gradeMatch) {
+          alertMessage = `⚠️ ALERTA DE VIGILÂNCIA ⚠️\n\nO objeto "${obj.title}" corresponde aos seus protocolos de monitoramento!\n` +
+                         (gradeMatch ? `• Nível de Ameaça: ${obj.threatGrade}\n` : '') +
+                         (tagMatch ? `• Tags Suspeitas Detectadas` : '');
+          
+          // Play a subtle sound or just rely on the alert
+          try {
+            const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3'); // Placeholder short beep
+            audio.volume = 0.2;
+            audio.play().catch(e => console.log('Audio play blocked', e));
+          } catch (e) {}
+        }
       }
-    }
 
-    window.alert(alertMessage);
+      window.alert(alertMessage);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'catalog');
+      window.alert("Erro ao salvar o registro no banco de dados.");
+    }
   };
 
-  const handleDeleteObject = (id: string) => {
-    setCatalog(prev => prev.filter(obj => obj.id !== id));
-    setSelectedObject(null);
+  const handleDeleteObject = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'catalog', id));
+      setSelectedObject(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'catalog');
+      window.alert("Erro ao excluir o registro.");
+    }
   };
 
   // Card Click Handler with Coordinate Capture

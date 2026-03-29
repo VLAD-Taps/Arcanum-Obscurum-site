@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "CatalogObject": {
+      "title": "CatalogObject",
+      "description": "An object or concept in the arcane catalog.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "dateAdded": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "location": { "type": "string" },
+        "coordinates": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "notes": { "type": "string" },
+        "customFields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        },
+        "bearer": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "rank": { "type": "string" }
+          }
+        },
+        "threatGrade": { "type": "string" },
+        "powerLevel": { "type": "number" }
+      },
+      "required": ["id", "title", "description", "dateAdded", "tags"]
+    }
+  },
+  "firestore": {
+    "catalog": {
+      "schema": { "$ref": "#/entities/CatalogObject" },
+      "description": "Collection of arcane objects and concepts."
+    }
+  }
+}

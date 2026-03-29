@@ -49,7 +49,38 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImage(reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Max dimensions
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Compress to JPEG with 0.7 quality
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setImage(dataUrl);
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -121,27 +152,28 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
       coordinates = { lat: parsedLat, lng: parsedLng };
     }
 
-    const newObj: CatalogObject = {
+    const newObj: any = {
       id: Date.now().toString(),
       title,
       description,
       tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
-      imageUrl: image || undefined,
       dateAdded: Date.now(),
-      notes: notes || undefined,
-      coordinates: coordinates,
       customFields: customFields.filter(f => f.key.trim() !== ''),
-      bearer: bearerName.trim() ? { name: bearerName, rank: bearerRank } : undefined,
       threatGrade: threatGrade,
       powerLevel: powerLevel
     };
+
+    if (image) newObj.imageUrl = image;
+    if (notes) newObj.notes = notes;
+    if (coordinates) newObj.coordinates = coordinates;
+    if (bearerName.trim()) newObj.bearer = { name: bearerName, rank: bearerRank };
 
     // Trigger Animation
     setIsSuccessAnim(true);
     
     // Delay save slightly to show animation
     setTimeout(() => {
-        onSave(newObj);
+        onSave(newObj as CatalogObject);
     }, 700);
   };
 

@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { AspectRatio } from "../types";
 
 // Helper to get client with current key safely
@@ -11,23 +11,23 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// 1. Fast AI Responses (Gemini 2.5 Flash-Lite)
+// 1. Fast AI Responses (Gemini 3.1 Flash-Lite)
 export const generateFastDescription = async (title: string, tags: string[]) => {
   const ai = getAiClient();
   const prompt = `Gere uma descrição curta, misteriosa e intrigante para um objeto chamado "${title}" com as tags: ${tags.join(', ')}. Use no máximo 2 frases.`;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-flash-lite-latest', // Correct model name per guidelines
+    model: 'gemini-3.1-flash-lite-preview', // Correct model name per guidelines
     contents: prompt,
   });
   return response.text;
 };
 
-// 2. Image Analysis (Gemini 3 Pro Preview)
+// 2. Image Analysis (Gemini 3.1 Pro Preview)
 export const analyzeImage = async (base64Image: string) => {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
@@ -54,15 +54,15 @@ export const analyzeImage = async (base64Image: string) => {
   return text;
 };
 
-// 3. Thinking Mode Chat (Gemini 3 Pro Preview + Thinking Budget)
+// 3. Thinking Mode Chat (Gemini 3.1 Pro Preview + ThinkingLevel.HIGH)
 export const chatWithThinking = async (message: string, history: any[]) => {
   const ai = getAiClient();
   
   const chat = ai.chats.create({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     history: history,
     config: {
-      thinkingConfig: { thinkingBudget: 32768 }, // Max budget
+      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
     }
   });
 

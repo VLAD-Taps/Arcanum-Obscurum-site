@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: catalog
+    // Document ID: string (timestamp based)
+    // Fields:
+    //   - id: string
+    //   - title: string
+    //   - description: string
+    //   - imageUrl: string (optional)
+    //   - dateAdded: number
+    //   - tags: list of strings
+    //   - location: string (optional)
+    //   - coordinates: map { lat: number, lng: number } (optional)
+    //   - notes: string (optional)
+    //   - customFields: list of maps { key: string, value: string } (optional)
+    //   - bearer: map { name: string, rank: string } (optional)
+    //   - threatGrade: string (optional)
+    //   - powerLevel: number (optional)
+    // ===============================================================
+
+    // Helper Functions
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidCatalogObject(data) {
+      return hasRequiredFields(['id', 'title', 'description', 'dateAdded', 'tags']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.description is string && data.description.size() >= 0 && data.description.size() < 10000 &&
+             data.dateAdded is number &&
+             data.tags is list && data.tags.size() <= 50 &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() < 2000000)) && // Allow large base64
+             (!('location' in data) || (data.location is string && data.location.size() < 200)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() < 5000)) &&
+             (!('threatGrade' in data) || (data.threatGrade is string && data.threatGrade.size() < 50)) &&
+             (!('powerLevel' in data) || data.powerLevel is number);
+    }
+
+    match /catalog/{itemId} {
+      // The user explicitly requested that changes "apareça para todos que estiverem no site"
+      // and they are using a client-side hardcoded password for admin access.
+      // Therefore, we allow public read and write, but enforce strict schema validation.
+      allow read: if true;
+      allow create: if isValidCatalogObject(request.resource.data);
+      allow update: if isValidCatalogObject(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}
