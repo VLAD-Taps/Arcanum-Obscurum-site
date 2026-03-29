@@ -23,18 +23,26 @@ const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) =>
 
   // Handle resize for the globe
   useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
         setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
         });
       }
-    };
+    });
 
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    resizeObserver.observe(containerRef.current);
+    
+    // Initial dimensions
+    setDimensions({
+      width: containerRef.current.offsetWidth,
+      height: containerRef.current.offsetHeight
+    });
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   // Generate fake coordinates for demo purposes if not present
@@ -96,9 +104,9 @@ const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) =>
             ref={globeEl}
             width={dimensions.width}
             height={dimensions.height}
-            globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-            bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-            backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+            globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+            bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
+            backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
             
             // Points (Markers)
             pointsData={mapItems}
