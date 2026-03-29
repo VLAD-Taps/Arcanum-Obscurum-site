@@ -508,7 +508,13 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
       return getUniqueNews(fallbackNews, count);
     }
   } catch (e: any) {
-    console.error("Failed to fetch news feed (API Error or Missing Key), using fallback.", e);
+    // If it's a rate limit error, just warn quietly
+    const isRateLimit = e?.status === 429 || e?.error?.code === 429 || e?.message?.includes('429') || e?.message?.includes('RESOURCE_EXHAUSTED');
+    if (isRateLimit) {
+      console.warn("Rate limit exceeded for news feed. Using fallback data.");
+    } else {
+      console.warn("Failed to fetch news feed. Using fallback data.", e);
+    }
     return getUniqueNews(fallbackNews, count);
   }
 };

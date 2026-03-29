@@ -225,10 +225,10 @@ function App() {
       loadDisasters();
     }
 
-    // Interval for updates (every 60 seconds)
+    // Interval for updates (every 5 minutes to avoid rate limits)
     const interval = setInterval(() => {
       loadDisasters(true);
-    }, 60000);
+    }, 300000);
 
     return () => clearInterval(interval);
   }, [disasterAlertPrefs]); // Re-run if prefs change to ensure logic uses latest prefs (though mainly for the interval setup, logic inside uses current state if referenced correctly or re-instantiated)
