@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink } from 'lucide-react';
+import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap } from 'lucide-react';
 import { CatalogObject } from '../types';
 
 interface ObjectDetailModalProps {
@@ -165,36 +165,100 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
             )}
           </div>
 
-          {/* Bearer Detail Section */}
-          {object.bearer && (
-             <div className={`p-5 rounded-xl border flex items-center gap-4 ${
-               isConceptBearer 
-                ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-700/50' 
-                : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-700/50'
-             }`}>
-                <div className={`p-3 rounded-full ${
-                  isConceptBearer ? 'bg-amber-100 text-amber-600 dark:bg-amber-800 dark:text-amber-200' : 'bg-blue-100 text-blue-600 dark:bg-blue-800 dark:text-blue-200'
-                }`}>
-                  <User size={24} />
-                </div>
+          {/* Stats & Bearer Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Threat & Power Level */}
+            <div className="p-5 rounded-xl border bg-gray-50 dark:bg-void border-gray-200 dark:border-gray-700 flex flex-col justify-center">
+              <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className={`text-xs uppercase font-bold tracking-widest mb-1 ${
-                    isConceptBearer ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
-                  }`}>
-                    Proprietário Atual
+                  <h4 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-2">
+                    Grau de Ameaça
                   </h4>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    {object.bearer.name}
-                    {isConceptBearer && <Crown size={16} className="text-amber-500" fill="currentColor" />}
-                  </div>
-                  <p className="text-xs opacity-70 mt-1 dark:text-gray-300">
-                    {isConceptBearer 
-                      ? "Este portador detém poder sobre um Conceito. Nível de ameaça: Extremo." 
-                      : "Este portador detém um Objeto singular. Nível de ameaça: Moderado."}
-                  </p>
+                  {object.threatGrade ? (
+                    <span className={`inline-block px-3 py-1 text-xs font-bold uppercase rounded-md border ${
+                      object.threatGrade.includes('Especial') ? 'bg-black text-red-500 border-red-500' :
+                      object.threatGrade.includes('Classe 1') ? 'bg-red-900 text-white border-red-900' :
+                      object.threatGrade.includes('Classe 2') ? 'bg-red-700 text-white border-red-700' :
+                      object.threatGrade.includes('Classe 3') ? 'bg-red-500 text-white border-red-500' :
+                      object.threatGrade.includes('Classe 4') ? 'bg-gray-600 text-white border-gray-600' :
+                      'bg-gray-200 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700'
+                    }`}>
+                      {object.threatGrade}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-400">Não classificado</span>
+                  )}
                 </div>
-             </div>
-          )}
+                <div className="text-right">
+                  <h4 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-2">
+                    Nível de Poder
+                  </h4>
+                  {object.powerLevel !== undefined ? (
+                    <div className="flex items-center justify-end gap-1 text-2xl font-black text-arcane-red">
+                      <Zap size={20} fill="currentColor" />
+                      {object.powerLevel.toLocaleString()}
+                    </div>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-400">Desconhecido</span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Power Level Bar */}
+              {object.powerLevel !== undefined && (
+                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 mt-2 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-orange-500 to-red-600 h-2 rounded-full" 
+                    style={{ width: `${Math.min((object.powerLevel / 10000) * 100, 100)}%` }}
+                  ></div>
+                </div>
+              )}
+            </div>
+
+            {/* Bearer Detail Section */}
+            {object.bearer ? (
+              <div className={`p-5 rounded-xl border flex items-center gap-4 ${
+                isConceptBearer 
+                 ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-700/50' 
+                 : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-700/50'
+              }`}>
+                 <div className={`p-3 rounded-full ${
+                   isConceptBearer ? 'bg-amber-100 text-amber-600 dark:bg-amber-800 dark:text-amber-200' : 'bg-blue-100 text-blue-600 dark:bg-blue-800 dark:text-blue-200'
+                 }`}>
+                   <User size={24} />
+                 </div>
+                 <div>
+                   <h4 className={`text-xs uppercase font-bold tracking-widest mb-1 ${
+                     isConceptBearer ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'
+                   }`}>
+                     Proprietário Atual
+                   </h4>
+                   <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                     {object.bearer.name}
+                     {isConceptBearer && <Crown size={16} className="text-amber-500" fill="currentColor" />}
+                   </div>
+                   <p className="text-xs opacity-70 mt-1 dark:text-gray-300">
+                     Rank: <strong className="uppercase">{object.bearer.rank === 'Concept' ? 'Conceito' : 'Objeto'}</strong>
+                   </p>
+                 </div>
+              </div>
+            ) : (
+              <div className="p-5 rounded-xl border bg-gray-50 dark:bg-void border-gray-200 dark:border-gray-700 flex items-center gap-4 opacity-70">
+                 <div className="p-3 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-500">
+                   <User size={24} />
+                 </div>
+                 <div>
+                   <h4 className="text-xs uppercase font-bold tracking-widest text-gray-500 mb-1">
+                     Proprietário Atual
+                   </h4>
+                   <div className="text-lg font-bold text-gray-500">
+                     Sem Portador
+                   </div>
+                 </div>
+              </div>
+            )}
+          </div>
 
           {/* Custom Fields Grid */}
           {object.customFields && object.customFields.length > 0 && (

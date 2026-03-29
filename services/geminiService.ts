@@ -212,8 +212,212 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
       severity: "low",
       description: "Relógios da cidade param simultaneamente por 3 minutos.",
       timestamp: randomTime()
+    },
+    {
+      location: "Amazônia, Brasil",
+      type: "BIO-HAZARD",
+      severity: "critical",
+      description: "Árvores com veias pulsantes descobertas em área remota.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Paris, França",
+      type: "PSIÔNICO",
+      severity: "medium",
+      description: "Catacumbas emitem brilho violeta visível da superfície.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Sydney, Austrália",
+      type: "CLIMA",
+      severity: "high",
+      description: "Chuva de cinzas azuis cobre a Opera House sem origem vulcânica.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Moscou, Rússia",
+      type: "TECNOCULTO",
+      severity: "medium",
+      description: "Sinais de TV invadidos por transmissão de estática inteligente.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Cidade do México, México",
+      type: "ARQUEOLOGIA",
+      severity: "high",
+      description: "Pirâmide do Sol vibra em frequência audível por cães.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Reykjavik, Islândia",
+      type: "ANOMALIA",
+      severity: "low",
+      description: "Auroras boreais formam padrões geométricos perfeitos.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Mumbai, Índia",
+      type: "TEMPORAL",
+      severity: "medium",
+      description: "Trem chega à estação 50 anos após sua partida.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Berlim, Alemanha",
+      type: "PSIÔNICO",
+      severity: "high",
+      description: "Sonho coletivo reportado por 10.000 pessoas na mesma noite.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Pequim, China",
+      type: "TECNOCULTO",
+      severity: "critical",
+      description: "IA urbana desenvolve linguagem própria e assume controle de semáforos.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Cidade do Cabo, África do Sul",
+      type: "CLIMA",
+      severity: "medium",
+      description: "Nevoeiro denso e sólido isola a Table Mountain.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Roma, Itália",
+      type: "ARQUEOLOGIA",
+      severity: "low",
+      description: "Estátuas de mármore 'choram' líquido negro viscoso.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Las Vegas, EUA",
+      type: "ANOMALIA",
+      severity: "high",
+      description: "Miragem sólida de cidade desconhecida aparece no deserto.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Istambul, Turquia",
+      type: "PSIÔNICO",
+      severity: "low",
+      description: "Gatos de rua começam a miar em uníssono formando código Morse.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Viena, Áustria",
+      type: "ANOMALIA",
+      severity: "low",
+      description: "Estátuas de praça mudam de pose sutilmente quando ninguém está olhando.",
+      timestamp: randomTime()
+    },
+    {
+      location: "São Paulo, Brasil",
+      type: "TEMPORAL",
+      severity: "low",
+      description: "Sinal de rádio pirata transmite músicas e notícias datadas de 2050.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Iowa, EUA",
+      type: "BIO-HAZARD",
+      severity: "low",
+      description: "Plantação de milho cresce em espirais perfeitas da noite para o dia.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Dubai, EAU",
+      type: "ANOMALIA",
+      severity: "medium",
+      description: "Espelhos em hotel de luxo deixam de refletir pessoas, apenas o ambiente.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Monte Fuji, Japão",
+      type: "CLIMA",
+      severity: "medium",
+      description: "Nuvem em formato de olho humano paira sobre o vulcão há 3 dias.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Toronto, Canadá",
+      type: "TECNOCULTO",
+      severity: "medium",
+      description: "Todos os semáforos da cidade piscam em sincronia com batimentos cardíacos.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Oxford, UK",
+      type: "PSIÔNICO",
+      severity: "medium",
+      description: "Livros da seção de ocultismo de biblioteca reescrevem seus próprios finais.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Seul, Coreia do Sul",
+      type: "COSMICO",
+      severity: "high",
+      description: "Fenda brilhante aparece no céu noturno, emitindo sons de engrenagens gigantes.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Costa da Grécia",
+      type: "ARQUEOLOGIA",
+      severity: "high",
+      description: "Ruínas de cidade submersa desconhecida começam a emergir rapidamente do mar.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Alasca, EUA",
+      type: "BIO-HAZARD",
+      severity: "high",
+      description: "População inteira de pequena cidade perde a necessidade e capacidade de dormir.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Nova Delhi, Índia",
+      type: "ANOMALIA",
+      severity: "high",
+      description: "Sombras de pedestres se desprendem de seus donos e andam sozinhas pelas ruas.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Costa Leste, EUA",
+      type: "CLIMA",
+      severity: "critical",
+      description: "Oceano Atlântico recua 5km repentinamente sem qualquer sinal de tsunami iminente.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Observatório Arecibo (Antigo), Porto Rico",
+      type: "COSMICO",
+      severity: "critical",
+      description: "Sinal alienígena decodificado em ruínas alerta repetidamente: 'Eles estão acordando'.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Vale do Silício, EUA",
+      type: "TECNOCULTO",
+      severity: "critical",
+      description: "Vírus digital transforma monitores em portais hipnóticos letais; milhares afetados.",
+      timestamp: randomTime()
+    },
+    {
+      location: "Genebra, Suíça",
+      type: "TEMPORAL",
+      severity: "critical",
+      description: "Fissura temporal no CERN revela visão de uma Terra devastada e irreconhecível.",
+      timestamp: randomTime()
     }
   ];
+
+  // Helper to filter duplicates
+  const getUniqueNews = (candidates: any[], count: number) => {
+    const unique = candidates.filter(item => 
+      !recentHeadlines.some(headline => headline.toLowerCase() === item.description.toLowerCase())
+    );
+    return unique.sort(() => 0.5 - Math.random()).slice(0, count);
+  };
 
   try {
     // Move client initialization inside try/catch to handle missing API keys gracefully
@@ -283,16 +487,29 @@ export const fetchGlobalDisasters = async (count: number = 3, recentHeadlines: s
       const cleanText = text.replace(/```json\n?|```/g, '').trim();
       const parsed = JSON.parse(cleanText);
       
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Filter AI results against recent headlines
+        const uniqueAiNews = parsed.filter((item: any) => 
+          !recentHeadlines.some(headline => headline.toLowerCase() === item.description.toLowerCase())
+        );
+        
+        // If AI returned duplicates, fill with fallback
+        if (uniqueAiNews.length < count) {
+           const needed = count - uniqueAiNews.length;
+           const extras = getUniqueNews(fallbackNews, needed);
+           return [...uniqueAiNews, ...extras];
+        }
+        
+        return uniqueAiNews.slice(0, count);
+      }
       throw new Error("Invalid JSON format or empty array");
     } catch (e) {
       console.warn("JSON parse failed, using fallback data.", e);
-      // Return a random subset of fallback news to simulate variety even on failure
-      return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
+      return getUniqueNews(fallbackNews, count);
     }
   } catch (e: any) {
     console.error("Failed to fetch news feed (API Error or Missing Key), using fallback.", e);
-    return fallbackNews.sort(() => 0.5 - Math.random()).slice(0, count);
+    return getUniqueNews(fallbackNews, count);
   }
 };
 

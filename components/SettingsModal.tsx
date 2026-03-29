@@ -103,7 +103,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handlePasswordSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-        if (password === '411521096') {
+        if (password === '411521096001') {
             onAdminLogin();
             setShowPasswordInput(false);
             setPassword('');

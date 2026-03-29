@@ -74,6 +74,20 @@ function App() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Catalog Search State
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+
+  // Filtered Catalog
+  const filteredCatalog = React.useMemo(() => {
+    if (!catalogSearchQuery.trim()) return catalog;
+    const query = catalogSearchQuery.toLowerCase();
+    return catalog.filter(item => 
+      item.title.toLowerCase().includes(query) || 
+      item.description.toLowerCase().includes(query) ||
+      item.tags.some(tag => tag.toLowerCase().includes(query))
+    );
+  }, [catalog, catalogSearchQuery]);
+
   // Global Disaster Fetching Logic
   const recentHeadlinesRef = useRef<string[]>([]);
 
@@ -92,7 +106,19 @@ function App() {
          return;
       }
 
-      const newEvents = data.map((item: any) => ({
+      // Strict De-duplication Logic
+      const uniqueNewEvents = data.filter((item: any) => {
+        const isDuplicateInRef = recentHeadlinesRef.current.some(h => h.toLowerCase() === item.description.toLowerCase());
+        const isDuplicateInState = disasterEvents.some(e => e.description.toLowerCase() === item.description.toLowerCase());
+        return !isDuplicateInRef && !isDuplicateInState;
+      });
+
+      if (uniqueNewEvents.length === 0) {
+        console.log("Todos os eventos recebidos eram duplicatas. Ignorando atualização.");
+        return;
+      }
+
+      const newEvents = uniqueNewEvents.map((item: any) => ({
         ...item,
         id: Date.now().toString() + Math.random().toString().slice(2)
       }));
@@ -103,7 +129,7 @@ function App() {
         
         // Update ref with new headlines
         const newHeadlines = newEvents.map((e: any) => e.description);
-        recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 20); // Keep last 20
+        recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 50); // Increased history to 50
         
         return updated.slice(0, 50);
       });
@@ -259,7 +285,7 @@ function App() {
     
     // Trigger load when within 100px of bottom
     if (scrollHeight - scrollTop <= clientHeight + 100) {
-      if (visibleItems < catalog.length && !isLoadingMore) {
+      if (visibleItems < filteredCatalog.length && !isLoadingMore) {
         setIsLoadingMore(true);
         
         // Simulate network delay for smoother UX and to prevent rapid-fire updates
@@ -380,7 +406,7 @@ function App() {
             <div className="flex justify-between items-end border-b-2 border-arcane-red/20 pb-4 mb-6">
               <div>
                 <h2 className="text-4xl font-black dark:text-white uppercase tracking-tighter">Acervo Global</h2>
-                <p className="text-arcane-red font-medium">Itens contidos: {catalog.length}</p>
+                <p className="text-arcane-red font-medium">Itens contidos: {filteredCatalog.length}</p>
               </div>
               
               {/* Botão Novo Registro: Exibido APENAS se for Admin */}
@@ -394,16 +420,46 @@ function App() {
               )}
             </div>
 
-            {catalog.length === 0 ? (
+            {/* Search Bar */}
+            <div className="mb-6 relative">
+              <input
+                type="text"
+                placeholder="Buscar no acervo por nome, descrição ou tag..."
+                value={catalogSearchQuery}
+                onChange={(e) => {
+                  setCatalogSearchQuery(e.target.value);
+                  setVisibleItems(12); // Reset infinite scroll on search
+                }}
+                className="w-full bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 pl-10 text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:border-arcane-red dark:focus:border-arcane-red transition-colors"
+              />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              {catalogSearchQuery && (
+                <button 
+                  onClick={() => {
+                    setCatalogSearchQuery('');
+                    setVisibleItems(12);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {filteredCatalog.length === 0 ? (
               <div className="text-center py-20 opacity-50 border-2 border-dashed border-gray-300 dark:border-red-900/30 rounded-xl">
                 <Box size={64} className="mx-auto text-gray-400 dark:text-red-900 mb-4" />
-                <p className="text-xl dark:text-gray-300 font-bold">O Vazio predomina.</p>
-                <p className="text-sm dark:text-gray-500">Inicie o protocolo de catalogação.</p>
+                <p className="text-xl dark:text-gray-300 font-bold">
+                  {catalog.length === 0 ? "O Vazio predomina." : "Nenhum registro encontrado."}
+                </p>
+                <p className="text-sm dark:text-gray-500">
+                  {catalog.length === 0 ? "Inicie o protocolo de catalogação." : "Tente buscar por outros termos."}
+                </p>
               </div>
             ) : (
               // Changed grid to grid-cols-2 for mobile and up to grid-cols-4 for large screens
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-10">
-                {catalog.slice(0, visibleItems).map((item, index) => (
+                {filteredCatalog.slice(0, visibleItems).map((item, index) => (
                   <div 
                     key={item.id} 
                     onClick={(e) => handleCardClick(e, item)}
