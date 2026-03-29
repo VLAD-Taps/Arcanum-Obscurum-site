@@ -219,16 +219,16 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
             </div>
             <div>
                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 flex items-center gap-1">
-                    <Zap size={12} /> Nível de Poder Estimado: {powerLevel}
+                    <Zap size={12} /> Nível de Poder Estimado
                 </label>
                 <input 
-                    type="range"
+                    type="number"
                     min="0"
-                    max="10000"
-                    step="50"
+                    step="1"
                     value={powerLevel}
-                    onChange={(e) => setPowerLevel(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-arcane-red"
+                    onChange={(e) => setPowerLevel(parseInt(e.target.value) || 0)}
+                    placeholder="Ex: 5000"
+                    className="w-full p-2.5 rounded bg-gray-50 dark:bg-void border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-arcane-red outline-none dark:text-white text-sm font-bold"
                 />
             </div>
         </div>
