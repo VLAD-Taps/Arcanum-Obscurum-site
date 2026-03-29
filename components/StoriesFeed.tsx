@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Story } from '../types';
 
@@ -10,19 +10,45 @@ interface StoriesFeedProps {
 
 const StoriesFeed: React.FC<StoriesFeedProps> = ({ stories, onStoryClick, onAddStory }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
       const scrollAmount = 300; // Quantidade de scroll por clique
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      });
+      
+      // Check if we are at the end
+      const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+      
+      if (direction === 'right' && isAtEnd) {
+        // Go back to start if at the end
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollBy({
+          left: direction === 'left' ? -scrollAmount : scrollAmount,
+          behavior: 'smooth'
+        });
+      }
     }
   };
 
+  // Auto-scroll functionality
+  useEffect(() => {
+    if (isHovered || stories.length === 0) return;
+    
+    const interval = setInterval(() => {
+      scroll('right');
+    }, 4000); // Avança a cada 4 segundos (tempo de exibição)
+
+    return () => clearInterval(interval);
+  }, [isHovered, stories.length]);
+
   return (
-    <div className="relative w-full group">
+    <div 
+      className="relative w-full group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Botão Esquerdo (Visível apenas em Desktop ao passar o mouse) */}
       <button 
         onClick={() => scroll('left')}

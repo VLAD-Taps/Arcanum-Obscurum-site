@@ -5,12 +5,10 @@ import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
 import ObjectDetailModal from './components/ObjectDetailModal';
 import SettingsModal from './components/SettingsModal';
-import StoriesFeed from './components/StoriesFeed';
-import StoryViewer from './components/StoryViewer';
 import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
-import { CatalogObject, Story, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
+import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
 import { fetchGlobalDisasters } from './services/geminiService';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
@@ -100,10 +98,6 @@ function App() {
   
   // Modal Animation State
   const [modalOrigin, setModalOrigin] = useState<{x: number, y: number} | null>(null);
-
-  // Stories State
-  const [stories, setStories] = useState<Story[]>([]);
-  const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   
   // Infinite Scroll State
   const [visibleItems, setVisibleItems] = useState(12);
@@ -255,25 +249,6 @@ function App() {
       localStorage.removeItem('arcanum_has_notification');
     }
   }, [activeTab]);
-
-  // Derive stories from catalog (mock simulation for "Recent Updates")
-  useEffect(() => {
-    if (catalog.length > 0) {
-      const newStories: Story[] = catalog
-        .filter(item => item.imageUrl)
-        .slice(0, 10)
-        .map(item => ({
-          id: item.id,
-          title: item.title,
-          imageUrl: item.imageUrl!,
-          date: item.dateAdded,
-          isSeen: false
-        }));
-      setStories(newStories);
-    } else {
-      setStories([]);
-    }
-  }, [catalog]);
 
   const toggleTheme = () => setIsDark(!isDark);
 
@@ -451,21 +426,6 @@ function App() {
         {activeTab === 'catalog' && (
           <div className="space-y-6">
             
-            {/* Feed de Noticias: Exibido APENAS se NÃO for admin */}
-            {!isAdmin && (
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-500 dark:text-red-400 mb-2 px-1 uppercase tracking-wide">Descobertas Recentes</h3>
-                <StoriesFeed 
-                  stories={stories} 
-                  onStoryClick={(idx) => setActiveStoryIndex(idx)}
-                  onAddStory={() => {
-                     // Usuário comum não pode adicionar
-                     alert("Acesso restrito. Faça login como administrador.");
-                  }}
-                />
-              </div>
-            )}
-
             <div className="flex justify-between items-end border-b-2 border-arcane-red/20 pb-4 mb-6">
               <div>
                 <h2 className="text-4xl font-black dark:text-white uppercase tracking-tighter">Acervo Global</h2>
@@ -675,15 +635,6 @@ function App() {
           </div>
         )}
       </main>
-
-      {/* Story Viewer Overlay */}
-      {activeStoryIndex !== null && (
-        <StoryViewer 
-          stories={stories}
-          initialStoryIndex={activeStoryIndex}
-          onClose={() => setActiveStoryIndex(null)}
-        />
-      )}
 
       {/* Modal Integration */}
       <ObjectDetailModal 
