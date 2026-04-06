@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio, AlertTriangle, X, BookOpen } from 'lucide-react';
+import { LayoutGrid, Plus, Globe, Image as ImageIcon, Box, Crown, Settings, Shield, Search, Save, Radio, AlertTriangle, X, BookOpen, Download } from 'lucide-react';
 import AddObjectForm from './components/AddObjectForm';
 import ChatBot from './components/ChatBot';
 import MapExplorer from './components/MapExplorer';
@@ -98,6 +98,43 @@ function App() {
   
   // Modal Animation State
   const [modalOrigin, setModalOrigin] = useState<{x: number, y: number} | null>(null);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+      // Update UI notify the user they can install the PWA
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+    // We've used the prompt, and can't use it again, throw it away
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
   
   // Infinite Scroll State
   const [visibleItems, setVisibleItems] = useState(12);
@@ -407,6 +444,16 @@ function App() {
         </div>
         
         <div className="flex items-center gap-4">
+          {isInstallable && (
+            <button 
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 px-3 py-1.5 bg-arcane-red hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-lg transition-transform active:scale-95"
+              title="Instalar Aplicativo"
+            >
+              <Download size={14} />
+              <span className="hidden sm:inline">INSTALAR APP</span>
+            </button>
+          )}
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
@@ -487,8 +534,8 @@ function App() {
                     key={item.id} 
                     onClick={(e) => handleCardClick(e, item)}
                     style={{
-                      animation: 'fadeInUp 0.4s ease-out forwards',
-                      animationDelay: `${(index % 12) * 0.05}s`,
+                      animation: 'fadeInUp 0.15s ease-out forwards',
+                      animationDelay: `${(index % 12) * 0.02}s`,
                       opacity: 0
                     }}
                     className="bg-white dark:bg-void-light rounded overflow-hidden shadow-lg border border-gray-200 dark:border-red-900/40 hover:border-arcane-red dark:hover:border-arcane-red transition-all group cursor-pointer hover:shadow-xl hover:shadow-red-900/20 flex flex-col h-full transform hover:-translate-y-1 duration-200"
@@ -591,7 +638,7 @@ function App() {
         )}
 
         {activeTab === 'maps' && (
-          <div className="max-w-6xl mx-auto w-full h-[80vh]">
+          <div className="max-w-6xl mx-auto w-full h-[80vh] min-h-[600px]">
             <MapExplorer catalog={catalog} onObjectSelect={(obj) => {
               setSelectedObject(obj);
               setModalOrigin(null); // Reset origin for map clicks

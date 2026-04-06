@@ -98,8 +98,11 @@ const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) =>
       </div>
 
       {/* The 3D Globe */}
-      <div ref={containerRef} className="flex-1 bg-[#050505] relative overflow-hidden cursor-move">
-        {dimensions.width > 0 && (
+      <div ref={containerRef} className="flex-1 min-h-[500px] w-full bg-[#050505] relative overflow-hidden cursor-move flex items-center justify-center">
+        {dimensions.width === 0 && (
+          <div className="text-white z-50">Carregando mapa... (Largura: {dimensions.width}, Altura: {dimensions.height})</div>
+        )}
+        {dimensions.width > 0 && dimensions.height > 0 && (
           <Globe
             ref={globeEl}
             width={dimensions.width}
@@ -107,6 +110,8 @@ const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) =>
             globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
             bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
             backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
+            showGlobe={true}
+            showAtmosphere={true}
             
             // Points (Markers)
             pointsData={mapItems}
@@ -143,7 +148,7 @@ const MapExplorer: React.FC<MapExplorerProps> = ({ catalog, onObjectSelect }) =>
 
         {/* Selected Item Floating Card */}
         {selectedPin && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 md:top-1/2 md:left-auto md:right-4 md:transform-none md:-translate-y-1/2 z-20 w-72 bg-white/95 dark:bg-void/95 backdrop-blur-md border-2 border-arcane-red rounded-xl shadow-2xl p-4 animate-in fade-in slide-in-from-bottom-4 md:slide-in-from-right-4 duration-300">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 md:left-auto md:right-4 md:translate-x-0 z-20 w-72 max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-void/95 backdrop-blur-md border-2 border-arcane-red rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 md:slide-in-from-right-4 duration-300">
             <button 
               onClick={() => setSelectedPin(null)}
               className="absolute -top-3 -right-3 bg-arcane-red text-white rounded-full p-1.5 hover:bg-red-700 shadow-lg transition-transform hover:scale-110"
