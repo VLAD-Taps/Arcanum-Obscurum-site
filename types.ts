@@ -30,6 +30,7 @@ export interface CatalogObject {
   bearer?: Bearer;
   threatGrade?: string; // Vínculo com a Classificação de Ameaça
   powerLevel?: number; // 0 a 10000+ para ranqueamento de força
+  containmentLog?: string; // Registro de contenção colocado pelo admin
 }
 
 export interface ThreatLevel {

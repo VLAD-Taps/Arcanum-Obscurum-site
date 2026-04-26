@@ -1,20 +1,46 @@
-import React, { useState } from 'react';
-import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap, Save, Edit2 } from 'lucide-react';
 import { CatalogObject } from '../types';
+import AddObjectForm from './AddObjectForm';
 
 interface ObjectDetailModalProps {
   object: CatalogObject | null;
   isOpen: boolean;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onUpdate?: (obj: CatalogObject) => void;
   originCoords: { x: number; y: number } | null;
   isAdmin?: boolean;
 }
 
-const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, onClose, onDelete, originCoords, isAdmin }) => {
+const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, onClose, onDelete, onUpdate, originCoords, isAdmin }) => {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [showContainmentLog, setShowContainmentLog] = useState(false);
+  const [editedLog, setEditedLog] = useState('');
+  const [isEditingLog, setIsEditingLog] = useState(false);
+  const [isEditingEntireObject, setIsEditingEntireObject] = useState(false);
+
+  useEffect(() => {
+    if (object) {
+      setEditedLog(object.containmentLog || '');
+      setIsEditingLog(false);
+      setIsEditingEntireObject(false);
+    }
+  }, [object]);
 
   if (!isOpen || !object) return null;
+
+  const handleFullSave = (updatedObj: CatalogObject) => {
+    if (onUpdate) onUpdate(updatedObj);
+    setIsEditingEntireObject(false);
+  };
+
+  const handleSaveLog = () => {
+    if (onUpdate && object) {
+      onUpdate({ ...object, containmentLog: editedLog });
+      setIsEditingLog(false);
+    }
+  };
 
   const handleDeleteClick = () => {
     setIsConfirmingDelete(true);
@@ -79,8 +105,24 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
           </div>
         )}
 
-        {/* Header Image */}
-        <div className="relative h-72 bg-gray-100 dark:bg-black/50 flex-shrink-0">
+        {isEditingEntireObject ? (
+           <div className="overflow-y-auto w-full h-full p-4 relative">
+             <button 
+                onClick={() => setIsEditingEntireObject(false)}
+                className="absolute top-4 right-4 p-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full transition-colors z-10"
+             >
+                <X size={20} className="text-gray-800 dark:text-white" />
+             </button>
+             <AddObjectForm 
+                onSave={handleFullSave} 
+                onCancel={() => setIsEditingEntireObject(false)} 
+                initialData={object} 
+             />
+           </div>
+        ) : (
+          <>
+            {/* Header Image */}
+            <div className="relative h-72 bg-gray-100 dark:bg-black/50 flex-shrink-0">
           {object.imageUrl ? (
             <img 
               src={object.imageUrl} 
@@ -280,9 +322,80 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
             <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200">
               <FileText size={18} /> Descrição
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap mb-4">
               {object.description}
             </p>
+
+            {/* Containment Log */}
+            <div className="mt-4 border-t border-gray-200 dark:border-gray-800 pt-4">
+              <button
+                onClick={() => setShowContainmentLog(!showContainmentLog)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-lg text-sm font-bold uppercase transition-colors"
+              >
+                <Shield size={16} />
+                {showContainmentLog ? "Ocultar Registro de Contenção" : "Ver Registro de Contenção"}
+              </button>
+              
+              {showContainmentLog && (
+                <div className="mt-3 p-4 bg-gray-900 rounded-lg border border-red-900 shadow-inner overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center justify-between border-b border-red-900/50 pb-2 mb-2">
+                    <h4 className="text-red-500 text-xs font-mono uppercase tracking-widest flex items-center gap-2">
+                      <AlertTriangle size={14} /> 
+                      Arquivo Resguardado
+                    </h4>
+                    {isAdmin && !isEditingLog && (
+                      <button 
+                        onClick={() => setIsEditingLog(true)}
+                        className="text-xs text-red-400 hover:text-red-300 underline font-mono"
+                      >
+                        [Editar]
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingLog && isAdmin ? (
+                    <div className="mt-2 animate-in fade-in">
+                      <textarea
+                        value={editedLog}
+                        onChange={(e) => setEditedLog(e.target.value)}
+                        className="w-full bg-black/80 border border-red-900/50 text-green-500 font-mono text-sm p-3 rounded resize-none focus:ring-1 focus:ring-red-500 outline-none h-32"
+                        placeholder="Insira os procedimentos de contenção aqui..."
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button 
+                          onClick={() => {
+                            setIsEditingLog(false);
+                            setIsEditingEntireObject(true);
+                          }}
+                          className="px-3 py-1.5 bg-yellow-900/40 hover:bg-yellow-900/80 text-yellow-500 hover:text-yellow-400 rounded text-xs font-mono border border-yellow-800 flex items-center gap-1 transition-colors mr-auto"
+                        >
+                          <Edit2 size={14} /> [Editar Tudo]
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setEditedLog(object.containmentLog || '');
+                            setIsEditingLog(false);
+                          }}
+                          className="px-3 py-1.5 text-xs font-mono text-gray-400 hover:text-white"
+                        >
+                          [Cancelar]
+                        </button>
+                        <button 
+                          onClick={handleSaveLog}
+                          className="px-3 py-1.5 bg-red-900/40 hover:bg-red-900/80 text-white rounded text-xs font-mono border border-red-800 flex items-center gap-1 transition-colors"
+                        >
+                          <Save size={14} /> [Salvar]
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <pre className="text-green-500 font-mono text-sm whitespace-pre-wrap leading-relaxed">
+                      {object.containmentLog ? object.containmentLog : "Nenhum procedimento de contenção registrado para este artefato."}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Private Notes */}
@@ -298,6 +411,8 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
           )}
 
         </div>
+        </>
+        )}
       </div>
     </div>
   );

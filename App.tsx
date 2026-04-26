@@ -683,6 +683,7 @@ function App() {
         isOpen={!!selectedObject} 
         onClose={() => setSelectedObject(null)}
         onDelete={handleDeleteObject}
+        onUpdate={handleSaveObject}
         originCoords={modalOrigin}
         isAdmin={isAdmin}
       />

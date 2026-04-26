@@ -6,6 +6,7 @@ import { CatalogObject, CustomField, BearerRank } from '../types';
 interface AddObjectFormProps {
   onSave: (obj: CatalogObject) => void;
   onCancel: () => void;
+  initialData?: CatalogObject;
 }
 
 const THREAT_GRADES = [
@@ -16,25 +17,26 @@ const THREAT_GRADES = [
   'Classe 4'
 ];
 
-const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [notes, setNotes] = useState('');
-  const [image, setImage] = useState<string | null>(null);
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel, initialData }) => {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [tags, setTags] = useState(initialData?.tags?.join(', ') || '');
+  const [notes, setNotes] = useState(initialData?.notes || '');
+  const [containmentLog, setContainmentLog] = useState(initialData?.containmentLog || '');
+  const [image, setImage] = useState<string | null>(initialData?.imageUrl || null);
+  const [customFields, setCustomFields] = useState<CustomField[]>(initialData?.customFields || []);
   
   // Location State
-  const [lat, setLat] = useState<string>('');
-  const [lng, setLng] = useState<string>('');
+  const [lat, setLat] = useState<string>(initialData?.coordinates ? initialData.coordinates.lat.toString() : '');
+  const [lng, setLng] = useState<string>(initialData?.coordinates ? initialData.coordinates.lng.toString() : '');
 
   // Bearer State
-  const [bearerName, setBearerName] = useState('');
-  const [bearerRank, setBearerRank] = useState<BearerRank>('Object');
+  const [bearerName, setBearerName] = useState(initialData?.bearer?.name || '');
+  const [bearerRank, setBearerRank] = useState<BearerRank>(initialData?.bearer?.rank || 'Object');
 
   // Threat & Power State
-  const [threatGrade, setThreatGrade] = useState<string>('Classe 4');
-  const [powerLevel, setPowerLevel] = useState<number>(100);
+  const [threatGrade, setThreatGrade] = useState<string>(initialData?.threatGrade || 'Classe 4');
+  const [powerLevel, setPowerLevel] = useState<number>(initialData?.powerLevel || 100);
 
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingFast, setLoadingFast] = useState(false);
@@ -153,11 +155,11 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
     }
 
     const newObj: any = {
-      id: Date.now().toString(),
+      id: initialData?.id || Date.now().toString(),
       title,
       description,
       tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
-      dateAdded: Date.now(),
+      dateAdded: initialData?.dateAdded || Date.now(),
       customFields: customFields.filter(f => f.key.trim() !== ''),
       threatGrade: threatGrade,
       powerLevel: powerLevel
@@ -165,6 +167,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
 
     if (image) newObj.imageUrl = image;
     if (notes) newObj.notes = notes;
+    if (containmentLog) newObj.containmentLog = containmentLog;
     if (coordinates) newObj.coordinates = coordinates;
     if (bearerName.trim()) newObj.bearer = { name: bearerName, rank: bearerRank };
 
@@ -181,7 +184,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white dark:bg-void-light rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
       <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
         <Save className="w-6 h-6 text-arcane-red" />
-        Novo Artefato
+        {initialData ? "Editar Artefato" : "Novo Artefato"}
       </h2>
 
       {/* Image Section */}
@@ -420,6 +423,16 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
             placeholder="Segredos, localização exata, selos necessários..."
           />
         </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1 text-arcane-red">Registro de Contenção (Admin)</label>
+          <textarea
+            value={containmentLog}
+            onChange={(e) => setContainmentLog(e.target.value)}
+            className="w-full p-2 rounded bg-red-50 dark:bg-void border border-gray-300 dark:border-red-900/50 focus:ring-2 focus:ring-arcane-red outline-none dark:text-white h-20 resize-none font-mono text-sm"
+            placeholder="Relatório de procedimentos de contenção, incidentes, atualizações de status..."
+          />
+        </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -444,7 +457,7 @@ const AddObjectForm: React.FC<AddObjectFormProps> = ({ onSave, onCancel }) => {
                <CheckCircle size={18} /> SELANDO...
              </span>
           ) : (
-             "REGISTRAR"
+             initialData ? "SALVAR ALTERAÇÕES" : "REGISTRAR"
           )}
         </button>
       </div>
