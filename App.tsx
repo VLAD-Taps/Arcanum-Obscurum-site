@@ -155,6 +155,8 @@ function App() {
     );
   }, [catalog, catalogSearchQuery]);
 
+  const [handledSharedObject, setHandledSharedObject] = useState(false);
+
   // Firebase Realtime Sync
   useEffect(() => {
     const q = query(collection(db, 'catalog'), orderBy('dateAdded', 'desc'));
@@ -170,6 +172,29 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (catalog.length > 0 && !handledSharedObject) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const objectId = searchParams.get('objectId');
+      if (objectId) {
+        const foundObject = catalog.find(obj => obj.id === objectId);
+        if (foundObject) {
+          setSelectedObject(foundObject);
+          setHandledSharedObject(true);
+          
+          // Optionally clean the URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('objectId');
+          newUrl.searchParams.delete('lat');
+          newUrl.searchParams.delete('lng');
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+      } else {
+        setHandledSharedObject(true);
+      }
+    }
+  }, [catalog, handledSharedObject]);
 
   // Global Disaster Fetching Logic
   const recentHeadlinesRef = useRef<string[]>([]);

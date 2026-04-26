@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap, Save, Edit2 } from 'lucide-react';
+import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap, Save, Edit2, Share2, Check } from 'lucide-react';
 import { CatalogObject } from '../types';
 import AddObjectForm from './AddObjectForm';
 
@@ -20,9 +20,11 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
   const [isEditingLog, setIsEditingLog] = useState(false);
   const [isEditingEntireObject, setIsEditingEntireObject] = useState(false);
 
+  const [isCopied, setIsCopied] = useState(false);
+
   useEffect(() => {
     if (object) {
-      setEditedLog(object.containmentLog || '');
+      setEditedLog(object?.containmentLog || '');
       setIsEditingLog(false);
       setIsEditingEntireObject(false);
     }
@@ -39,6 +41,22 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
     if (onUpdate && object) {
       onUpdate({ ...object, containmentLog: editedLog });
       setIsEditingLog(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('objectId', object.id);
+      if (object.coordinates) {
+        url.searchParams.set('lat', object.coordinates.lat.toString());
+        url.searchParams.set('lng', object.coordinates.lng.toString());
+      }
+      await navigator.clipboard.writeText(url.toString());
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
     }
   };
 
@@ -136,6 +154,13 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
           )}
           
           <div className="absolute top-4 right-4 flex gap-2">
+            <button 
+              onClick={handleShare}
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+              title="Compartilhar"
+            >
+              {isCopied ? <Check size={20} className="text-green-400" /> : <Share2 size={20} />}
+            </button>
             {isAdmin && (
               <button 
                 onClick={handleDeleteClick}
