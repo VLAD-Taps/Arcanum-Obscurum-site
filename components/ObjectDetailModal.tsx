@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap, Save, Edit2, Share2, Check } from 'lucide-react';
+import { X, Calendar, MapPin, Tag, FileText, Box, Trash2, AlertTriangle, User, Crown, Shield, ExternalLink, Zap, Save, Edit2, Share2, Check, FileDown, Loader2 } from 'lucide-react';
 import { CatalogObject } from '../types';
 import AddObjectForm from './AddObjectForm';
+import { exportObjectToPdf } from '../utils/exportPdf';
 
 interface ObjectDetailModalProps {
   object: CatalogObject | null;
@@ -21,6 +22,7 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
   const [isEditingEntireObject, setIsEditingEntireObject] = useState(false);
 
   const [isCopied, setIsCopied] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
     if (object) {
@@ -31,6 +33,18 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
   }, [object]);
 
   if (!isOpen || !object) return null;
+
+  const handleExportPdf = async () => {
+    if (!object) return;
+    try {
+      setIsExportingPdf(true);
+      await exportObjectToPdf(object);
+    } catch (err) {
+      console.error('Erro ao exportar PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const handleFullSave = (updatedObj: CatalogObject) => {
     if (onUpdate) onUpdate(updatedObj);
@@ -155,6 +169,14 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
           
           <div className="absolute top-4 right-4 flex gap-2">
             <button 
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors disabled:opacity-50"
+              title="Exportar PDF (Relatório de Campo)"
+            >
+              {isExportingPdf ? <Loader2 size={20} className="animate-spin text-red-400" /> : <FileDown size={20} />}
+            </button>
+            <button 
               onClick={handleShare}
               className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
               title="Compartilhar"
@@ -222,17 +244,33 @@ const ObjectDetailModal: React.FC<ObjectDetailModalProps> = ({ object, isOpen, o
               </div>
             </div>
             
-            {/* Map Action Button */}
-            {object.coordinates && (
+            {/* Header Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={handleOpenMap}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg shadow-blue-500/20 transition-all font-bold text-xs uppercase tracking-wide"
+                onClick={handleExportPdf}
+                disabled={isExportingPdf}
+                className="flex items-center gap-2 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg shadow-red-600/20 transition-all font-bold text-xs uppercase tracking-wide disabled:opacity-50"
+                title="Exportar Resumo em PDF"
               >
-                <MapPin size={16} />
-                <span className="hidden sm:inline">Ver no Mapa</span>
-                <ExternalLink size={12} className="opacity-70" />
+                {isExportingPdf ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <FileDown size={16} />
+                )}
+                <span className="hidden sm:inline">Exportar PDF</span>
               </button>
-            )}
+
+              {object.coordinates && (
+                <button
+                  onClick={handleOpenMap}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg shadow-blue-500/20 transition-all font-bold text-xs uppercase tracking-wide"
+                >
+                  <MapPin size={16} />
+                  <span className="hidden sm:inline">Ver no Mapa</span>
+                  <ExternalLink size={12} className="opacity-70" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Stats & Bearer Section */}
