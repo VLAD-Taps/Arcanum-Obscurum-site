@@ -8,6 +8,7 @@ import SettingsModal from './components/SettingsModal';
 import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
+import ArcaneBookIcon from './components/ArcaneBookIcon';
 import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
 import { fetchGlobalDisasters } from './services/geminiService';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
@@ -157,7 +158,7 @@ function App() {
 
   const [handledSharedObject, setHandledSharedObject] = useState(false);
 
-  // Firebase Realtime Sync
+  // Firebase Realtime Sync - Catalog
   useEffect(() => {
     const q = query(collection(db, 'catalog'), orderBy('dateAdded', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -168,6 +169,23 @@ function App() {
       setCatalog(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'catalog');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Firebase Realtime Sync - Signals / Disaster Feed (Persistent storage)
+  useEffect(() => {
+    const q = query(collection(db, 'signals'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: DisasterEvent[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as DisasterEvent);
+      });
+      setDisasterEvents(items);
+      recentHeadlinesRef.current = items.map(i => i.description);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'signals');
     });
 
     return () => unsubscribe();
@@ -198,13 +216,22 @@ function App() {
 
   // Global Disaster Fetching Logic
   const recentHeadlinesRef = useRef<string[]>([]);
+  const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAlertExiting, setIsAlertExiting] = useState(false);
+
+  const dismissAlerts = () => {
+    setIsAlertExiting(true);
+    setTimeout(() => {
+      setActiveAlerts([]);
+      setIsAlertExiting(false);
+    }, 500);
+  };
 
   const loadDisasters = async (append = false) => {
     console.log("Iniciando busca de desastres globais...");
     try {
-      // Reduce initial load to 3 to prevent JSON truncation
-      const count = append ? 1 : 3;
-      // Pass recent headlines to avoid repetition
+      // Generate 1-2 new articles at a time
+      const count = append ? 2 : 3;
       const data = await fetchGlobalDisasters(count, recentHeadlinesRef.current);
       
       console.log(`Recebidos ${data?.length || 0} eventos.`);
@@ -226,36 +253,33 @@ function App() {
         return;
       }
 
-      const newEvents = uniqueNewEvents.map((item: any) => ({
+      const now = Date.now();
+      const newEvents: DisasterEvent[] = uniqueNewEvents.map((item: any, idx: number) => ({
         ...item,
-        id: Date.now().toString() + Math.random().toString().slice(2)
+        id: (now + idx).toString() + Math.random().toString().slice(2),
+        createdAt: now - idx
       }));
 
-      setDisasterEvents(prev => {
-        // Keep max 50 events
-        const updated = append ? [...newEvents, ...prev] : newEvents;
-        
-        // Update ref with new headlines
-        const newHeadlines = newEvents.map((e: any) => e.description);
-        recentHeadlinesRef.current = [...newHeadlines, ...recentHeadlinesRef.current].slice(0, 50); // Increased history to 50
-        
-        return updated.slice(0, 50);
-      });
+      // Store permanently in Firestore
+      for (const eventObj of newEvents) {
+        try {
+          await setDoc(doc(db, 'signals', eventObj.id), eventObj);
+        } catch (e) {
+          handleFirestoreError(e, OperationType.CREATE, 'signals');
+        }
+      }
 
       // Check for alerts
       if (disasterAlertPrefs.enabled && newEvents.length > 0) {
         const matchedEvents = newEvents.filter((event: DisasterEvent) => {
-          // Severity check logic
           const severityLevels = ['low', 'medium', 'high', 'critical'];
           const eventSeverityIndex = severityLevels.indexOf(event.severity);
           const minSeverityIndex = severityLevels.indexOf(disasterAlertPrefs.minSeverity);
           if (eventSeverityIndex < minSeverityIndex) return false;
 
-          // Type check
           const typeMatch = disasterAlertPrefs.watchedTypes.length === 0 || 
             disasterAlertPrefs.watchedTypes.some(t => event.type.toLowerCase().includes(t.toLowerCase()));
           
-          // Location check
           const locMatch = disasterAlertPrefs.watchedLocations.length === 0 || 
             disasterAlertPrefs.watchedLocations.some(l => event.location.toLowerCase().includes(l.toLowerCase()));
 
@@ -263,16 +287,25 @@ function App() {
         });
 
         if (matchedEvents.length > 0) {
-          setActiveAlerts(prev => {
-            const newAlerts = [...matchedEvents, ...prev];
-            return newAlerts.slice(0, 3); // Limit to 3 active alerts
-          });
-          // Play alert sound
+          if (alertTimeoutRef.current) {
+            clearTimeout(alertTimeoutRef.current);
+          }
+
+          setIsAlertExiting(false);
+          setActiveAlerts(matchedEvents.slice(0, 3));
+
+          // Sound effect
           try {
              const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/GalaxyInvaders/alien_shoot.mp3');
              audio.volume = 0.3;
              audio.play().catch(() => {});
           } catch (e) {}
+
+          // Display timer logic: 5s default, 3s if vast generation count
+          const displayDuration = (newEvents.length >= 2 || matchedEvents.length >= 3) ? 3000 : 5000;
+          alertTimeoutRef.current = setTimeout(() => {
+            dismissAlerts();
+          }, displayDuration);
         }
       }
 
@@ -282,18 +315,43 @@ function App() {
   };
 
   useEffect(() => {
-    // Initial load
+    // Initial load if empty
     if (disasterEvents.length === 0) {
       loadDisasters();
     }
 
-    // Interval for updates (every 5 minutes to avoid rate limits)
+    // Increased frequency: every 25 seconds
     const interval = setInterval(() => {
       loadDisasters(true);
-    }, 300000);
+    }, 25000);
 
     return () => clearInterval(interval);
-  }, [disasterAlertPrefs]); // Re-run if prefs change to ensure logic uses latest prefs (though mainly for the interval setup, logic inside uses current state if referenced correctly or re-instantiated)
+  }, [disasterAlertPrefs, disasterEvents.length]);
+
+  // Admin signal actions
+  const handleDeleteSignal = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'signals', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'signals');
+    }
+  };
+
+  const handleUpdateSignal = async (signal: DisasterEvent) => {
+    try {
+      await setDoc(doc(db, 'signals', signal.id), signal);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'signals');
+    }
+  };
+
+  const handleCreateSignal = async (signal: DisasterEvent) => {
+    try {
+      await setDoc(doc(db, 'signals', signal.id), signal);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'signals');
+    }
+  };
 
   // Initialize theme
   useEffect(() => {
@@ -404,43 +462,153 @@ function App() {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        @keyframes pageTurnFirst {
+          0% {
+            transform: rotateY(0deg);
+            opacity: 0.95;
+            stroke: #ef4444;
+          }
+          50% {
+            transform: rotateY(-90deg) scaleX(0.7);
+            opacity: 0.8;
+            stroke: #f59e0b;
+          }
+          100% {
+            transform: rotateY(-180deg);
+            opacity: 0;
+            stroke: #dc2626;
+          }
+        }
+
+        @keyframes pageTurnSecond {
+          0% {
+            transform: rotateY(0deg);
+            opacity: 0;
+            stroke: #ef4444;
+          }
+          30% {
+            transform: rotateY(-30deg);
+            opacity: 0.9;
+            stroke: #f59e0b;
+          }
+          80% {
+            transform: rotateY(-140deg);
+            opacity: 0.5;
+            stroke: #dc2626;
+          }
+          100% {
+            transform: rotateY(-180deg);
+            opacity: 0;
+          }
+        }
+
+        .animate-pageTurnFirst {
+          animation: pageTurnFirst 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .animate-pageTurnSecond {
+          animation: pageTurnSecond 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s infinite;
+        }
+
+        @keyframes bookAuraPulse {
+          0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.4);
+          }
+          50% {
+            transform: scale(1.12);
+            box-shadow: 0 0 24px rgba(239, 68, 68, 0.9), 0 0 8px rgba(245, 158, 11, 0.6);
+          }
+        }
+
+        @keyframes notificationFluidEnter {
+          0% {
+            opacity: 0;
+            transform: translateY(-120%) scale(0.96);
+            filter: blur(8px);
+          }
+          60% {
+            opacity: 1;
+            transform: translateY(4px) scale(1.01);
+            filter: blur(0px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0px);
+          }
+        }
+
+        @keyframes notificationFluidExit {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0px);
+          }
+          40% {
+            opacity: 0.9;
+            transform: translateY(4px) scale(0.99);
+            filter: blur(1px);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-120%) scale(0.95);
+            filter: blur(10px);
+          }
+        }
+
+        .animate-notification-fluid {
+          animation: notificationFluidEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .animate-notification-fluid-exit {
+          animation: notificationFluidExit 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
       `}</style>
 
-      {/* Global Alert Banner - Enhanced */}
+      {/* Global Alert Banner - Enhanced Fluid Entry & Exit Animation */}
       {activeAlerts.length > 0 && (
-        <div className="fixed top-[57px] left-0 w-full z-40 animate-in slide-in-from-top-2 duration-300 pointer-events-auto">
-          <div className="bg-red-600/95 backdrop-blur-md text-white px-4 py-2 shadow-lg flex justify-between items-center border-b border-red-500">
-            <div className="flex items-center gap-3 overflow-hidden">
-               <div className="bg-white text-red-600 p-1 rounded-sm animate-pulse shrink-0">
-                 <AlertTriangle size={16} />
+        <div className={`fixed top-[57px] left-0 w-full z-40 ${isAlertExiting ? 'animate-notification-fluid-exit' : 'animate-notification-fluid'} pointer-events-auto`}>
+          <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-800 text-white px-4 py-2.5 shadow-xl flex justify-between items-center border-b border-red-500/80 backdrop-blur-md relative overflow-hidden">
+            {/* Fluid background pulse overlay */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/20 via-transparent to-transparent animate-pulse pointer-events-none" />
+
+            <div className="flex items-center gap-3 overflow-hidden relative z-10">
+               <div className="bg-white text-red-600 p-1.5 rounded shadow-md animate-bounce shrink-0">
+                 <AlertTriangle size={18} />
                </div>
                <div 
                  className="flex flex-col min-w-0 cursor-pointer group"
-                 onClick={() => setActiveTab('news')}
+                 onClick={() => {
+                   setActiveTab('news');
+                   dismissAlerts();
+                 }}
                >
-                 <span className="text-[10px] font-black uppercase tracking-widest opacity-90 group-hover:text-red-200 transition-colors">
-                   {activeAlerts.length} Ameaça(s) Detectada(s)
+                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-200 flex items-center gap-1.5">
+                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
+                   {activeAlerts.length} NOVO SINAL / MATÉRIA DETECTADA
                  </span>
-                 <span className="text-sm font-bold truncate leading-tight group-hover:underline">
+                 <span className="text-sm font-black truncate leading-tight group-hover:underline group-hover:text-amber-100 transition-colors">
                    {activeAlerts[0].description} <span className="opacity-80 font-normal text-xs"> — {activeAlerts[0].location}</span>
                  </span>
                </div>
             </div>
             
-            <div className="flex items-center gap-3 shrink-0 ml-2">
+            <div className="flex items-center gap-3 shrink-0 ml-2 relative z-10">
                {activeAlerts.length > 1 && (
-                 <div className="flex gap-1">
+                 <div className="flex gap-1.5 items-center">
                     {activeAlerts.slice(1, 4).map((_, i) => (
-                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                        <div key={i} className="w-2 h-2 rounded-full bg-white/70 animate-pulse" />
                     ))}
                  </div>
                )}
                <button 
-                 onClick={() => setActiveAlerts([])}
-                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                 onClick={dismissAlerts}
+                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/90 hover:text-white"
                  title="Dispensar Todos"
                >
-                 <X size={16} />
+                 <X size={18} />
                </button>
             </div>
           </div>
@@ -450,9 +618,7 @@ function App() {
       {/* Navbar - Red/White Theme */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 dark:bg-void/95 backdrop-blur-md border-b border-gray-200 dark:border-red-900/50 px-4 py-3 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-200 dark:border-gray-800">
-            <BookOpen className="text-white dark:text-black w-4 h-4" />
-          </div>
+          <ArcaneBookIcon isAnimating={activeAlerts.length > 0 || hasNotification} />
           <h1 className="text-xl font-black text-arcane-red tracking-widest uppercase flex items-center gap-3">
             ARCANUM OBSCURUM
             {/* Botão de Salvar apenas para Admin no Header */}
@@ -678,6 +844,10 @@ function App() {
               prefs={disasterAlertPrefs} 
               onUpdatePrefs={setDisasterAlertPrefs} 
               onRetry={() => loadDisasters(false)}
+              isAdmin={isAdmin}
+              onDeleteSignal={handleDeleteSignal}
+              onUpdateSignal={handleUpdateSignal}
+              onCreateSignal={handleCreateSignal}
             />
           </div>
         )}

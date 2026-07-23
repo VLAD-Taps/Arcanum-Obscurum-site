@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2, Filter, Calendar, ArrowDownUp } from 'lucide-react';
+import { Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2, Edit2, Filter, Calendar, ArrowDownUp, Check, Save } from 'lucide-react';
 import { generateFullNewsReport } from '../services/geminiService';
 import { DisasterEvent, DisasterAlertPreference } from '../types';
 
@@ -8,9 +8,22 @@ interface DisasterFeedProps {
   prefs: DisasterAlertPreference;
   onUpdatePrefs: (prefs: DisasterAlertPreference) => void;
   onRetry?: () => void;
+  isAdmin?: boolean;
+  onDeleteSignal?: (id: string) => Promise<void>;
+  onUpdateSignal?: (signal: DisasterEvent) => Promise<void>;
+  onCreateSignal?: (signal: DisasterEvent) => Promise<void>;
 }
 
-const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePrefs, onRetry }) => {
+const DisasterFeed: React.FC<DisasterFeedProps> = ({ 
+  events, 
+  prefs, 
+  onUpdatePrefs, 
+  onRetry,
+  isAdmin = false,
+  onDeleteSignal,
+  onUpdateSignal,
+  onCreateSignal
+}) => {
   // Reading Modal State
   const [selectedEvent, setSelectedEvent] = useState<DisasterEvent | null>(null);
   const [articleContent, setArticleContent] = useState<string>('');
@@ -21,6 +34,11 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
   const [newType, setNewType] = useState('');
   const [newLocation, setNewLocation] = useState('');
 
+  // Admin Edit / Create Modal State
+  const [editingSignal, setEditingSignal] = useState<DisasterEvent | null>(null);
+  const [isCreatingSignal, setIsCreatingSignal] = useState(false);
+  const [formData, setFormData] = useState<Partial<DisasterEvent>>({});
+
   // Filter & Sort State
   const [filterType, setFilterType] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
@@ -29,17 +47,96 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
   // Handle Event Click (Generate Report)
   const handleEventClick = async (event: DisasterEvent) => {
     setSelectedEvent(event);
+    if (event.fullArticle) {
+      setArticleContent(event.fullArticle);
+      setLoadingArticle(false);
+      return;
+    }
     setArticleContent('');
     setLoadingArticle(true);
     
     try {
       const report = await generateFullNewsReport(event);
-      setArticleContent(report || "Dados corrompidos durante a transmissão.");
+      const content = report || "Dados corrompidos durante a transmissão.";
+      setArticleContent(content);
+      if (onUpdateSignal) {
+        onUpdateSignal({ ...event, fullArticle: content });
+      }
     } catch (e) {
       setArticleContent("Falha na interceptação do sinal completo.");
     } finally {
       setLoadingArticle(false);
     }
+  };
+
+  const openEditModal = (e: React.MouseEvent, event: DisasterEvent) => {
+    e.stopPropagation();
+    setEditingSignal(event);
+    setFormData({ ...event });
+  };
+
+  const openCreateModal = () => {
+    setIsCreatingSignal(true);
+    setFormData({
+      description: '',
+      location: '',
+      type: 'ANOMALIA',
+      severity: 'medium',
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      fullArticle: ''
+    });
+  };
+
+  const handleDeleteClick = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm("Deseja realmente apagar esta matéria de forma permanente?")) {
+      if (onDeleteSignal) {
+        await onDeleteSignal(id);
+      }
+      if (selectedEvent && selectedEvent.id === id) {
+        setSelectedEvent(null);
+      }
+    }
+  };
+
+  const handleSaveForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.description || !formData.location) {
+      alert("Por favor, preencha a descrição e a localização da matéria.");
+      return;
+    }
+
+    if (editingSignal && onUpdateSignal) {
+      const updated: DisasterEvent = {
+        ...editingSignal,
+        description: formData.description || '',
+        location: formData.location || '',
+        type: formData.type || 'ANOMALIA',
+        severity: (formData.severity as any) || 'medium',
+        timestamp: formData.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        fullArticle: formData.fullArticle || ''
+      };
+      await onUpdateSignal(updated);
+      if (selectedEvent?.id === updated.id) {
+        setSelectedEvent(updated);
+        setArticleContent(updated.fullArticle || articleContent);
+      }
+    } else if (isCreatingSignal && onCreateSignal) {
+      const created: DisasterEvent = {
+        id: Date.now().toString() + Math.random().toString().slice(2),
+        description: formData.description || '',
+        location: formData.location || '',
+        type: formData.type || 'ANOMALIA',
+        severity: (formData.severity as any) || 'medium',
+        timestamp: formData.timestamp || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        createdAt: Date.now(),
+        fullArticle: formData.fullArticle || ''
+      };
+      await onCreateSignal(created);
+    }
+
+    setEditingSignal(null);
+    setIsCreatingSignal(false);
   };
 
   const getSeverityColor = (severity: string) => {
@@ -149,13 +246,22 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
 
       {/* Header Panel */}
       <div className="bg-white dark:bg-void-light p-5 rounded-xl shadow-lg border-t-4 border-arcane-red dark:border-red-600 mx-1">
-        <div className="flex justify-between items-center mb-1">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-1">
           <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
             <Radio className="text-arcane-red animate-pulse" />
             Rede de Vigilância
           </h2>
           
           <div className="flex items-center gap-2">
+             {isAdmin && (
+               <button
+                 onClick={openCreateModal}
+                 className="flex items-center gap-1.5 px-3 py-1.5 bg-arcane-red text-white text-xs font-bold uppercase rounded-full hover:bg-red-700 transition-colors shadow-md"
+               >
+                 <Plus size={14} />
+                 Nova Matéria
+               </button>
+             )}
              <button
                onClick={() => setIsConfigOpen(true)}
                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase transition-all border ${
@@ -172,6 +278,7 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
         <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-mono mt-2">
            <span className="flex items-center gap-1"><Globe size={12} /> GLOBAL</span>
            <span className="flex items-center gap-1"><TrendingUp size={12} /> EM ALTA</span>
+           {isAdmin && <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">MODO ADMIN</span>}
            <span className="text-arcane-red font-bold ml-auto">IA REPORTING ACTIVE</span>
         </div>
       </div>
@@ -265,11 +372,31 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
                     {event.timestamp}
                   </span>
                 </div>
-                {event.severity === 'critical' && (
-                    <span className="animate-pulse text-red-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-                        <AlertTriangle size={10} /> BREAKING NEWS
-                    </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {event.severity === 'critical' && (
+                      <span className="animate-pulse text-red-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+                          <AlertTriangle size={10} /> BREAKING NEWS
+                      </span>
+                  )}
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-black/60 rounded px-1.5 py-0.5 border border-gray-200 dark:border-gray-800">
+                      <button
+                        onClick={(e) => openEditModal(e, event)}
+                        title="Editar Matéria"
+                        className="p-1 hover:text-arcane-red text-gray-500 transition-colors"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(e, event.id)}
+                        title="Excluir Matéria"
+                        className="p-1 hover:text-red-600 text-gray-500 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-start gap-4 relative z-10 pl-1">
@@ -412,12 +539,32 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
                      <Globe size={14} /> {selectedEvent.location} — COBERTURA EXCLUSIVA
                   </p>
                </div>
-               <button 
-                 onClick={() => setSelectedEvent(null)}
-                 className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full transition-colors z-20"
-               >
-                 <X size={24} />
-               </button>
+               <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-black/80 rounded-lg p-1 border border-gray-300 dark:border-gray-700">
+                      <button
+                        onClick={(e) => openEditModal(e, selectedEvent)}
+                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold uppercase flex items-center gap-1 transition-colors"
+                      >
+                        <Edit2 size={12} />
+                        Editar
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(e, selectedEvent.id)}
+                        className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold uppercase flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        Apagar
+                      </button>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setSelectedEvent(null)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+               </div>
             </div>
 
             {/* Content */}
@@ -445,6 +592,122 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({ events, prefs, onUpdatePref
                )}
             </div>
             
+          </div>
+        </div>
+      )}
+
+      {/* Admin Edit / Create Signal Modal */}
+      {(editingSignal || isCreatingSignal) && (
+        <div className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-void w-full max-w-xl max-h-[90vh] rounded-xl shadow-2xl border-t-8 border-arcane-red flex flex-col relative overflow-hidden">
+            
+            <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-black/40">
+              <h3 className="text-xl font-black uppercase flex items-center gap-2 text-gray-900 dark:text-white">
+                <Edit2 className="text-arcane-red" size={20} />
+                {isCreatingSignal ? 'Criar Nova Matéria' : 'Editar Matéria'}
+              </h3>
+              <button 
+                onClick={() => { setEditingSignal(null); setIsCreatingSignal(false); }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveForm} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Título / Descrição da Matéria *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={formData.description || ''}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Ex: Sinal de rádio desconhecido emitido do fundo do oceano..."
+                  className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm focus:outline-none focus:border-arcane-red"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Localização *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.location || ''}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Ex: Ponto Nemo, Pacífico"
+                    className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-arcane-red"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Tipo / Categoria</label>
+                  <input
+                    type="text"
+                    value={formData.type || ''}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    placeholder="Ex: ANOMALIA, CLIMA, PSIÔNICO"
+                    className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-arcane-red"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Severidade</label>
+                  <select
+                    value={formData.severity || 'medium'}
+                    onChange={(e) => setFormData({ ...formData, severity: e.target.value as any })}
+                    className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-arcane-red"
+                  >
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta</option>
+                    <option value="critical">Crítica</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Horário / Marcação</label>
+                  <input
+                    type="text"
+                    value={formData.timestamp || ''}
+                    onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
+                    placeholder="Ex: 14:30"
+                    className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-arcane-red"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Conteúdo Completo da Matéria (Opcional)</label>
+                <textarea
+                  rows={6}
+                  value={formData.fullArticle || ''}
+                  onChange={(e) => setFormData({ ...formData, fullArticle: e.target.value })}
+                  placeholder="Texto completo da reportagem. Se deixado em branco, a IA gerará automaticamente quando o usuário clicar."
+                  className="w-full bg-gray-100 dark:bg-black/60 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm font-serif focus:outline-none focus:border-arcane-red"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => { setEditingSignal(null); setIsCreatingSignal(false); }}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold uppercase text-xs rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-arcane-red text-white font-bold uppercase text-xs rounded-lg hover:bg-red-700 flex items-center gap-1.5 shadow-lg"
+                >
+                  <Save size={14} />
+                  Salvar Matéria
+                </button>
+              </div>
+            </form>
+
           </div>
         </div>
       )}

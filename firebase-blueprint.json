@@ -41,12 +41,32 @@
         "powerLevel": { "type": "number" }
       },
       "required": ["id", "title", "description", "dateAdded", "tags"]
+    },
+    "DisasterEvent": {
+      "title": "DisasterEvent",
+      "description": "Arcane news signals and disaster reports.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "location": { "type": "string" },
+        "type": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "fullArticle": { "type": "string" }
+      },
+      "required": ["id", "location", "type", "severity", "description", "timestamp"]
     }
   },
   "firestore": {
     "catalog": {
       "schema": { "$ref": "#/entities/CatalogObject" },
       "description": "Collection of arcane objects and concepts."
+    },
+    "signals": {
+      "schema": { "$ref": "#/entities/DisasterEvent" },
+      "description": "Collection of global disaster signals and news articles."
     }
   }
 }

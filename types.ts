@@ -56,6 +56,8 @@ export interface DisasterEvent {
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
   timestamp: string;
+  createdAt?: number;
+  fullArticle?: string;
   coordinates?: { lat: number, lng: number };
 }
 
