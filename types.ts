@@ -114,3 +114,12 @@ export interface DisasterAlertPreference {
   watchedLocations: string[];
   minSeverity: 'low' | 'medium' | 'high' | 'critical';
 }
+
+export interface BackgroundPreferences {
+  enabled: boolean;
+  opacity: number; // 10 to 100
+  blur: number; // 0 to 10px
+  customUrl?: string;
+  dimOverlay: boolean;
+  position: 'center' | 'left' | 'right';
+}

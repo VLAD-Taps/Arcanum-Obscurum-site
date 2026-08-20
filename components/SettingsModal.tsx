@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { X, Moon, Sun, Settings, Bell, Tag, AlertTriangle, Trash2, Plus, Lock, Unlock } from 'lucide-react';
-import { NotificationPreferences } from '../types';
+import React, { useState, useRef } from 'react';
+import { X, Moon, Sun, Settings, Bell, Tag, AlertTriangle, Trash2, Plus, Lock, Unlock, Image as ImageIcon, Sparkles, RotateCcw, Sliders, Eye, EyeOff, Upload } from 'lucide-react';
+import { NotificationPreferences, BackgroundPreferences } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ interface SettingsModalProps {
   toggleTheme: () => void;
   notificationPrefs?: NotificationPreferences;
   onUpdatePrefs?: (prefs: NotificationPreferences) => void;
+  bgPrefs?: BackgroundPreferences;
+  onUpdateBgPrefs?: (prefs: BackgroundPreferences) => void;
   onAdminLogin: () => void;
   isAdmin: boolean;
 }
@@ -21,6 +23,8 @@ const THREAT_GRADES = [
   'Classe 4'
 ];
 
+const DEFAULT_BG_URL = '/arcanum_bg.jpg';
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ 
   isOpen, 
   onClose, 
@@ -28,10 +32,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   toggleTheme,
   notificationPrefs,
   onUpdatePrefs,
+  bgPrefs,
+  onUpdateBgPrefs,
   onAdminLogin,
   isAdmin
 }) => {
   const [newTag, setNewTag] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Admin Activation State
   const [versionClickCount, setVersionClickCount] = useState(0);
@@ -39,6 +46,77 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [password, setPassword] = useState('');
 
   if (!isOpen) return null;
+
+  const handleToggleBackground = () => {
+    if (bgPrefs && onUpdateBgPrefs) {
+      onUpdateBgPrefs({
+        ...bgPrefs,
+        enabled: !bgPrefs.enabled
+      });
+    }
+  };
+
+  const handleToggleOverlay = () => {
+    if (bgPrefs && onUpdateBgPrefs) {
+      onUpdateBgPrefs({
+        ...bgPrefs,
+        dimOverlay: !bgPrefs.dimOverlay
+      });
+    }
+  };
+
+  const handleOpacityChange = (val: number) => {
+    if (bgPrefs && onUpdateBgPrefs) {
+      onUpdateBgPrefs({
+        ...bgPrefs,
+        opacity: val
+      });
+    }
+  };
+
+  const handleBlurChange = (val: number) => {
+    if (bgPrefs && onUpdateBgPrefs) {
+      onUpdateBgPrefs({
+        ...bgPrefs,
+        blur: val
+      });
+    }
+  };
+
+  const handleResetBackground = () => {
+    if (onUpdateBgPrefs) {
+      onUpdateBgPrefs({
+        enabled: true,
+        opacity: 55,
+        blur: 0,
+        customUrl: DEFAULT_BG_URL,
+        dimOverlay: true,
+        position: 'center'
+      });
+    }
+  };
+
+  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onUpdateBgPrefs) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        onUpdateBgPrefs({
+          ...(bgPrefs || {
+            enabled: true,
+            opacity: 55,
+            blur: 0,
+            dimOverlay: true,
+            position: 'center'
+          }),
+          enabled: true,
+          customUrl: event.target.result as string
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleToggleNotifications = () => {
     if (notificationPrefs && onUpdatePrefs) {
@@ -152,6 +230,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             
             <button
+              id="btn-toggle-dark-mode"
               onClick={toggleTheme}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 ${
                 isDark ? 'bg-neon-purple' : 'bg-gray-300'
@@ -166,6 +245,159 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </span>
             </button>
           </div>
+
+          {/* Background Customization Settings */}
+          {bgPrefs && (
+            <div className="space-y-4 border-t border-gray-100 dark:border-gray-700 pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <ImageIcon size={16} className="text-arcane-red" /> Plano de Fundo Arcano
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Arte ilustrada de dossiês e anotações no fundo
+                  </p>
+                </div>
+
+                <button
+                  id="btn-toggle-bg-image"
+                  onClick={handleToggleBackground}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    bgPrefs.enabled ? 'bg-arcane-red' : 'bg-gray-300 dark:bg-gray-700'
+                  }`}
+                  title={bgPrefs.enabled ? 'Desativar Imagem de Fundo' : 'Ativar Imagem de Fundo'}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                      bgPrefs.enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {bgPrefs.enabled ? (
+                <div className="space-y-4 bg-gray-50 dark:bg-black/30 p-4 rounded-xl border border-gray-200 dark:border-gray-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Visual Preview Bar */}
+                  <div className="relative rounded-lg overflow-hidden h-24 border border-gray-300 dark:border-gray-700 shadow-inner flex items-center justify-center">
+                    <img 
+                      src={bgPrefs.customUrl || DEFAULT_BG_URL} 
+                      alt="Preview Fundo"
+                      referrerPolicy="no-referrer"
+                      className="absolute inset-0 w-full h-full object-cover select-none"
+                      style={{
+                        opacity: bgPrefs.opacity / 100,
+                        filter: bgPrefs.blur > 0 ? `blur(${bgPrefs.blur}px)` : undefined
+                      }}
+                    />
+                    {bgPrefs.dimOverlay && (
+                      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                    )}
+                    <div className="relative z-10 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-mono font-bold text-white flex items-center gap-1.5 shadow-md">
+                      <Sparkles size={12} className="text-amber-400" />
+                      <span>Arte Ativa ({bgPrefs.opacity}% opacidade)</span>
+                    </div>
+                  </div>
+
+                  {/* Opacity Slider */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <Sliders size={13} className="text-arcane-red" /> Opacidade do Fundo
+                      </span>
+                      <span className="font-mono text-gray-500 dark:text-gray-400 font-bold">{bgPrefs.opacity}%</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={bgPrefs.opacity}
+                      onChange={(e) => handleOpacityChange(Number(e.target.value))}
+                      className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-arcane-red"
+                    />
+                  </div>
+
+                  {/* Blur Slider */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <Eye size={13} className="text-arcane-red" /> Desfoque / Suavização
+                      </span>
+                      <span className="font-mono text-gray-500 dark:text-gray-400 font-bold">{bgPrefs.blur}px</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="0"
+                      max="8"
+                      step="1"
+                      value={bgPrefs.blur}
+                      onChange={(e) => handleBlurChange(Number(e.target.value))}
+                      className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-arcane-red"
+                    />
+                  </div>
+
+                  {/* Dark Vignette Overlay Toggle */}
+                  <div className="flex items-center justify-between pt-1 text-xs">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                      Camada de Contraste & Leitura
+                    </span>
+                    <button
+                      onClick={handleToggleOverlay}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold uppercase transition-all ${
+                        bgPrefs.dimOverlay 
+                          ? 'bg-arcane-red/20 text-arcane-red border border-arcane-red/40' 
+                          : 'bg-gray-200 dark:bg-gray-800 text-gray-500'
+                      }`}
+                    >
+                      {bgPrefs.dimOverlay ? 'Ativada' : 'Desativada'}
+                    </button>
+                  </div>
+
+                  {/* Upload & Reset Buttons */}
+                  <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+                    <input 
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCustomImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-void border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-arcane-red transition-all"
+                    >
+                      <Upload size={13} />
+                      Carregar Imagem
+                    </button>
+                    <button
+                      onClick={handleResetBackground}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300 transition-colors"
+                      title="Restaurar padrão da arte Arcanum Obscurum"
+                    >
+                      <RotateCcw size={13} />
+                      Restaurar
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-gray-400 italic">
+                    💡 Caso queira remover completamente a imagem e deixar o fundo limpo, basta desligar a chave acima.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 dark:bg-black/20 p-3 rounded-lg border border-gray-200 dark:border-gray-800 text-xs text-gray-500 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <EyeOff size={14} /> Fundo padrão ativado (sem imagem decorativa)
+                  </span>
+                  <button
+                    onClick={handleToggleBackground}
+                    className="text-arcane-red font-bold hover:underline"
+                  >
+                    Ativar Arte
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notification Settings */}
           {notificationPrefs && (

@@ -9,7 +9,7 @@ import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
 import ArcaneBookIcon from './components/ArcaneBookIcon';
-import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference, InfectionNewsItem } from './types';
+import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference, InfectionNewsItem, BackgroundPreferences } from './types';
 import { fetchGlobalDisasters, fetchRealInfectionNews } from './services/geminiService';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
@@ -92,6 +92,24 @@ function App() {
   const [infectionItems, setInfectionItems] = useState<InfectionNewsItem[]>([]);
   const [isLoadingInfections, setIsLoadingInfections] = useState<boolean>(false);
   const recentInfectionHeadlinesRef = useRef<string[]>([]);
+
+  // Background Customization State (Removable / Configurable)
+  const [bgPrefs, setBgPrefs] = useState<BackgroundPreferences>(() => {
+    const saved = localStorage.getItem('arcanum_bg_prefs');
+    return saved ? JSON.parse(saved) : {
+      enabled: true,
+      opacity: 55,
+      blur: 0,
+      customUrl: '/arcanum_bg.jpg',
+      dimOverlay: true,
+      position: 'center'
+    };
+  });
+
+  // Save bgPrefs whenever they change
+  useEffect(() => {
+    localStorage.setItem('arcanum_bg_prefs', JSON.stringify(bgPrefs));
+  }, [bgPrefs]);
 
   // Save prefs whenever they change
   useEffect(() => {
@@ -536,6 +554,29 @@ function App() {
 
   return (
     <div className="min-h-screen bg-off-white dark:bg-void transition-colors duration-300 font-sans flex flex-col overflow-hidden text-gray-900 dark:text-gray-100 relative">
+      
+      {/* Imagem de Fundo Arcanum Obscurum (Com Controle de Remoção / Opacidade / Desfoque) */}
+      {bgPrefs.enabled && (
+        <div 
+          className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none transition-opacity duration-500"
+          style={{ opacity: bgPrefs.opacity / 100 }}
+        >
+          <img
+            src={bgPrefs.customUrl || "/arcanum_bg.jpg"}
+            alt="Fundo Arcanum Obscurum"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-left-top select-none transition-all duration-300"
+            style={{
+              filter: bgPrefs.blur > 0 ? `blur(${bgPrefs.blur}px)` : undefined,
+            }}
+          />
+          {/* Camada de Vinheta e Contraste para garantir legibilidade de todos os textos e cartões */}
+          {bgPrefs.dimOverlay && (
+            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/40 to-black/75 dark:from-void/70 dark:via-void/80 dark:to-void pointer-events-none" />
+          )}
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(10px); }
@@ -974,6 +1015,8 @@ function App() {
         toggleTheme={toggleTheme}
         notificationPrefs={notificationPrefs}
         onUpdatePrefs={setNotificationPrefs}
+        bgPrefs={bgPrefs}
+        onUpdateBgPrefs={setBgPrefs}
         onAdminLogin={() => setIsAdmin(true)}
         isAdmin={isAdmin}
       />
