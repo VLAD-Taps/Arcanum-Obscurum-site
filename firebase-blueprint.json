@@ -57,6 +57,26 @@
         "fullArticle": { "type": "string" }
       },
       "required": ["id", "location", "type", "severity", "description", "timestamp"]
+    },
+    "InfectionNewsItem": {
+      "title": "InfectionNewsItem",
+      "description": "Real world infection news, outbreaks, and scientific studies from the surface web.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "source": { "type": "string" },
+        "url": { "type": "string" },
+        "publishedDate": { "type": "string" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "fullAnalysis": { "type": "string" },
+        "location": { "type": "string" },
+        "pathogen": { "type": "string" },
+        "keyFindings": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "summary", "category", "createdAt"]
     }
   },
   "firestore": {
@@ -67,6 +87,10 @@
     "signals": {
       "schema": { "$ref": "#/entities/DisasterEvent" },
       "description": "Collection of global disaster signals and news articles."
+    },
+    "real_infections": {
+      "schema": { "$ref": "#/entities/InfectionNewsItem" },
+      "description": "Collection of real-world infection news and epidemiological studies."
     }
   }
 }

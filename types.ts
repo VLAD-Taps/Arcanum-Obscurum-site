@@ -61,6 +61,22 @@ export interface DisasterEvent {
   coordinates?: { lat: number, lng: number };
 }
 
+export interface InfectionNewsItem {
+  id: string;
+  title: string;
+  source: string;
+  url?: string;
+  publishedDate?: string;
+  category: 'surto' | 'estudo' | 'alerta_oms' | 'resistencia' | 'mutacao' | 'outro';
+  summary: string;
+  fullAnalysis?: string;
+  location?: string;
+  pathogen?: string; // e.g. "H5N1", "Mpox", "Candida auris", "Dengue", "SARS-CoV-2", etc.
+  groundingLinks?: Array<{ title: string; uri: string }>;
+  keyFindings?: string[];
+  createdAt: number;
+}
+
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
 export interface ChatMessage {

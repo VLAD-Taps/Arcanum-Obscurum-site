@@ -1,7 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2, Edit2, Filter, Calendar, ArrowDownUp, Check, Save } from 'lucide-react';
+import { 
+  Radio, RefreshCw, AlertTriangle, Zap, Wind, Droplets, Flame, AlertOctagon, 
+  X, FileText, Globe, Newspaper, TrendingUp, Bell, Plus, Trash2, Edit2, Filter, 
+  Calendar, ArrowDownUp, Check, Save, Activity, FlaskConical, Dna, Sparkles 
+} from 'lucide-react';
 import { generateFullNewsReport } from '../services/geminiService';
-import { DisasterEvent, DisasterAlertPreference } from '../types';
+import { DisasterEvent, DisasterAlertPreference, InfectionNewsItem } from '../types';
+import { RealInfectionsCatalog } from './RealInfectionsCatalog';
 
 interface DisasterFeedProps {
   events: DisasterEvent[];
@@ -12,6 +17,11 @@ interface DisasterFeedProps {
   onDeleteSignal?: (id: string) => Promise<void>;
   onUpdateSignal?: (signal: DisasterEvent) => Promise<void>;
   onCreateSignal?: (signal: DisasterEvent) => Promise<void>;
+  infectionItems?: InfectionNewsItem[];
+  isLoadingInfections?: boolean;
+  onRefreshInfections?: (query?: string, category?: string) => Promise<void>;
+  onDeleteInfection?: (id: string) => Promise<void>;
+  onSaveInfection?: (item: InfectionNewsItem) => Promise<void>;
 }
 
 const DisasterFeed: React.FC<DisasterFeedProps> = ({ 
@@ -22,8 +32,16 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({
   isAdmin = false,
   onDeleteSignal,
   onUpdateSignal,
-  onCreateSignal
+  onCreateSignal,
+  infectionItems = [],
+  isLoadingInfections = false,
+  onRefreshInfections = async () => {},
+  onDeleteInfection,
+  onSaveInfection
 }) => {
+  // Sub-tab Section switcher: 'signals' (Sinais Ocultos) vs 'infections' (Vigilância Real na Surface Web)
+  const [activeSection, setActiveSection] = useState<'signals' | 'infections'>('signals');
+
   // Reading Modal State
   const [selectedEvent, setSelectedEvent] = useState<DisasterEvent | null>(null);
   const [articleContent, setArticleContent] = useState<string>('');
@@ -249,11 +267,11 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({
         <div className="flex flex-wrap justify-between items-center gap-3 mb-1">
           <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
             <Radio className="text-arcane-red animate-pulse" />
-            Rede de Vigilância
+            Rede de Vigilância & Sinais
           </h2>
           
           <div className="flex items-center gap-2">
-             {isAdmin && (
+             {isAdmin && activeSection === 'signals' && (
                <button
                  onClick={openCreateModal}
                  className="flex items-center gap-1.5 px-3 py-1.5 bg-arcane-red text-white text-xs font-bold uppercase rounded-full hover:bg-red-700 transition-colors shadow-md"
@@ -275,146 +293,195 @@ const DisasterFeed: React.FC<DisasterFeedProps> = ({
              </button>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-mono mt-2">
-           <span className="flex items-center gap-1"><Globe size={12} /> GLOBAL</span>
-           <span className="flex items-center gap-1"><TrendingUp size={12} /> EM ALTA</span>
-           {isAdmin && <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">MODO ADMIN</span>}
-           <span className="text-arcane-red font-bold ml-auto">IA REPORTING ACTIVE</span>
-        </div>
-      </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-wrap gap-2 px-1">
-        <div className="relative flex-1 min-w-[120px]">
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
-          >
-            <option value="all">Todas Categorias</option>
-            {uniqueTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-          <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        </div>
-
-        <div className="relative flex-1 min-w-[120px]">
-          <select
-            value={filterSeverity}
-            onChange={(e) => setFilterSeverity(e.target.value)}
-            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
-          >
-            <option value="all">Qualquer Severidade</option>
-            <option value="low">Baixa</option>
-            <option value="medium">Média</option>
-            <option value="high">Alta</option>
-            <option value="critical">Crítica</option>
-          </select>
-          <AlertTriangle size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        </div>
-
-        <div className="relative flex-1 min-w-[120px]">
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-            className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
-          >
-            <option value="newest">Mais Recentes</option>
-            <option value="oldest">Mais Antigos</option>
-          </select>
-          <ArrowDownUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        </div>
-      </div>
-
-      {/* News Feed List */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-1 scrollbar-hide">
-        {events.length === 0 ? (
-          <div className="text-center py-20 opacity-50">
-            <Radio size={64} className="mx-auto mb-6 animate-pulse text-arcane-red" />
-            <p className="font-bold text-lg">Interceptando sinais de rádio...</p>
-            <p className="text-xs font-mono mt-2 text-gray-500">Decodificando frequências ocultas...</p>
-            {onRetry && (
-               <button 
-                 onClick={onRetry}
-                 className="mt-6 px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-full text-xs font-bold uppercase hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-               >
-                 Forçar Reconexão
-               </button>
-            )}
-          </div>
-        ) : filteredEvents.length === 0 ? (
-          <div className="text-center py-10 opacity-50">
-            <Filter size={48} className="mx-auto mb-4 text-gray-400" />
-            <p className="font-bold text-sm">Nenhum evento encontrado com estes filtros.</p>
-            <button 
-              onClick={() => { setFilterType('all'); setFilterSeverity('all'); }}
-              className="mt-4 text-arcane-red text-xs font-bold uppercase hover:underline"
+        {/* Sub-tab Navigation */}
+        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center p-1 bg-gray-100 dark:bg-black/60 rounded-xl border border-gray-200 dark:border-gray-800 gap-1">
+            <button
+              id="subtab-signals-arcane"
+              onClick={() => setActiveSection('signals')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
+                activeSection === 'signals'
+                  ? 'bg-arcane-red text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
             >
-              Limpar Filtros
+              <Radio size={14} className={activeSection === 'signals' ? 'animate-pulse' : ''} />
+              Sinais Ocultos & Anomalias ({events.length})
+            </button>
+
+            <button
+              id="subtab-real-infections"
+              onClick={() => setActiveSection('infections')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
+                activeSection === 'infections'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Activity size={14} className={activeSection === 'infections' ? 'animate-pulse text-emerald-300' : 'text-emerald-500'} />
+              <span>Infecções & Estudos Reais</span>
+              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-1.5 py-0.2 rounded font-mono font-black">
+                SURFACE WEB
+              </span>
             </button>
           </div>
-        ) : (
-          filteredEvents.map((event) => (
-            <div 
-              key={event.id}
-              onClick={() => handleEventClick(event)}
-              className="bg-white dark:bg-black/40 border-l-4 border-gray-200 dark:border-gray-700 p-4 rounded-r-lg shadow-sm hover:border-l-arcane-red hover:bg-gray-50 dark:hover:bg-void transition-all group relative overflow-hidden cursor-pointer active:scale-[0.99] animate-in slide-in-from-bottom-2 duration-300"
-              style={{ borderLeftColor: event.severity === 'critical' ? '#dc2626' : undefined }}
-            >
-              
-              <div className="flex justify-between items-start mb-2 relative z-10 pl-1">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded-sm ${getSeverityColor(event.severity)}`}>
-                    {event.type}
-                  </span>
-                  <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
-                    {event.timestamp}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {event.severity === 'critical' && (
-                      <span className="animate-pulse text-red-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
-                          <AlertTriangle size={10} /> BREAKING NEWS
-                      </span>
-                  )}
-                  {isAdmin && (
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-black/60 rounded px-1.5 py-0.5 border border-gray-200 dark:border-gray-800">
-                      <button
-                        onClick={(e) => openEditModal(e, event)}
-                        title="Editar Matéria"
-                        className="p-1 hover:text-arcane-red text-gray-500 transition-colors"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        onClick={(e) => handleDeleteClick(e, event.id)}
-                        title="Excluir Matéria"
-                        className="p-1 hover:text-red-600 text-gray-500 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="flex items-start gap-4 relative z-10 pl-1">
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg leading-tight mb-2 group-hover:text-arcane-red transition-colors font-serif">
-                    {event.description}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">
-                     <span className="flex items-center gap-1 text-arcane-red"><Globe size={10} /> {event.location}</span>
-                     <span className="text-gray-300 dark:text-gray-700">|</span>
-                     <span className="flex items-center gap-1 hover:underline">LER MATÉRIA COMPLETA &rarr;</span>
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 font-mono">
+            <span className="flex items-center gap-1"><Globe size={12} /> GLOBAL</span>
+            <span className="flex items-center gap-1"><TrendingUp size={12} /> EM ALTA</span>
+            {isAdmin && <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">MODO ADMIN</span>}
+          </div>
+        </div>
+      </div>
+
+      {activeSection === 'infections' ? (
+        <div className="px-1">
+          <RealInfectionsCatalog
+            items={infectionItems}
+            isLoading={isLoadingInfections}
+            isAdmin={isAdmin}
+            onRefreshFromWeb={onRefreshInfections}
+            onDeleteItem={onDeleteInfection}
+            onSaveItem={onSaveInfection}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Filter Bar */}
+          <div className="flex flex-wrap gap-2 px-1">
+            <div className="relative flex-1 min-w-[120px]">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+              >
+                <option value="all">Todas Categorias</option>
+                {uniqueTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+
+            <div className="relative flex-1 min-w-[120px]">
+              <select
+                value={filterSeverity}
+                onChange={(e) => setFilterSeverity(e.target.value)}
+                className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+              >
+                <option value="all">Qualquer Severidade</option>
+                <option value="low">Baixa</option>
+                <option value="medium">Média</option>
+                <option value="high">Alta</option>
+                <option value="critical">Crítica</option>
+              </select>
+              <AlertTriangle size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+
+            <div className="relative flex-1 min-w-[120px]">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                className="w-full appearance-none bg-white dark:bg-black/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pl-9 text-xs font-bold uppercase text-gray-700 dark:text-gray-300 focus:outline-none focus:border-arcane-red"
+              >
+                <option value="newest">Mais Recentes</option>
+                <option value="oldest">Mais Antigos</option>
+              </select>
+              <ArrowDownUp size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          {/* News Feed List */}
+          <div className="flex-1 space-y-3 overflow-y-auto px-1 scrollbar-hide">
+            {events.length === 0 ? (
+              <div className="text-center py-20 opacity-50">
+                <Radio size={64} className="mx-auto mb-6 animate-pulse text-arcane-red" />
+                <p className="font-bold text-lg">Interceptando sinais de rádio...</p>
+                <p className="text-xs font-mono mt-2 text-gray-500">Decodificando frequências ocultas...</p>
+                {onRetry && (
+                   <button 
+                     onClick={onRetry}
+                     className="mt-6 px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-full text-xs font-bold uppercase hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                   >
+                     Forçar Reconexão
+                   </button>
+                )}
+              </div>
+            ) : filteredEvents.length === 0 ? (
+              <div className="text-center py-10 opacity-50">
+                <Filter size={48} className="mx-auto mb-4 text-gray-400" />
+                <p className="font-bold text-sm">Nenhum evento encontrado com estes filtros.</p>
+                <button 
+                  onClick={() => { setFilterType('all'); setFilterSeverity('all'); }}
+                  className="mt-4 text-arcane-red text-xs font-bold uppercase hover:underline"
+                >
+                  Limpar Filtros
+                </button>
+              </div>
+            ) : (
+              filteredEvents.map((event) => (
+                <div 
+                  key={event.id}
+                  onClick={() => handleEventClick(event)}
+                  className="bg-white dark:bg-black/40 border-l-4 border-gray-200 dark:border-gray-700 p-4 rounded-r-lg shadow-sm hover:border-l-arcane-red hover:bg-gray-50 dark:hover:bg-void transition-all group relative overflow-hidden cursor-pointer active:scale-[0.99] animate-in slide-in-from-bottom-2 duration-300"
+                  style={{ borderLeftColor: event.severity === 'critical' ? '#dc2626' : undefined }}
+                >
+                  
+                  <div className="flex justify-between items-start mb-2 relative z-10 pl-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded-sm ${getSeverityColor(event.severity)}`}>
+                        {event.type}
+                      </span>
+                      <span className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                        {event.timestamp}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {event.severity === 'critical' && (
+                          <span className="animate-pulse text-red-600 font-black text-[10px] uppercase tracking-widest flex items-center gap-1">
+                              <AlertTriangle size={10} /> BREAKING NEWS
+                          </span>
+                      )}
+                      {isAdmin && (
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-black/60 rounded px-1.5 py-0.5 border border-gray-200 dark:border-gray-800">
+                          <button
+                            onClick={(e) => openEditModal(e, event)}
+                            title="Editar Matéria"
+                            className="p-1 hover:text-arcane-red text-gray-500 transition-colors"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteClick(e, event.id)}
+                            title="Excluir Matéria"
+                            className="p-1 hover:text-red-600 text-gray-500 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 relative z-10 pl-1">
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg leading-tight mb-2 group-hover:text-arcane-red transition-colors font-serif">
+                        {event.description}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">
+                         <span className="flex items-center gap-1 text-arcane-red"><Globe size={10} /> {event.location}</span>
+                         <span className="text-gray-300 dark:text-gray-700">|</span>
+                         <span className="flex items-center gap-1 hover:underline">LER MATÉRIA COMPLETA &rarr;</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Alert Configuration Modal */}
       {isConfigOpen && (

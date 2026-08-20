@@ -9,8 +9,8 @@ import ThreatLevels from './components/ThreatLevels';
 import SearchTab from './components/SearchTab';
 import DisasterFeed from './components/DisasterFeed'; // Import DisasterFeed
 import ArcaneBookIcon from './components/ArcaneBookIcon';
-import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference } from './types';
-import { fetchGlobalDisasters } from './services/geminiService';
+import { CatalogObject, NotificationPreferences, DisasterEvent, DisasterAlertPreference, InfectionNewsItem } from './types';
+import { fetchGlobalDisasters, fetchRealInfectionNews } from './services/geminiService';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -87,6 +87,11 @@ function App() {
   // Disaster Events State (Global)
   const [disasterEvents, setDisasterEvents] = useState<DisasterEvent[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<DisasterEvent[]>([]);
+
+  // Real-world Infection & Study News State
+  const [infectionItems, setInfectionItems] = useState<InfectionNewsItem[]>([]);
+  const [isLoadingInfections, setIsLoadingInfections] = useState<boolean>(false);
+  const recentInfectionHeadlinesRef = useRef<string[]>([]);
 
   // Save prefs whenever they change
   useEffect(() => {
@@ -186,6 +191,23 @@ function App() {
       recentHeadlinesRef.current = items.map(i => i.description);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'signals');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Firebase Realtime Sync - Real Infections & Studies Catalog (Persistent storage)
+  useEffect(() => {
+    const q = query(collection(db, 'real_infections'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: InfectionNewsItem[] = [];
+      snapshot.forEach((doc) => {
+        items.push(doc.data() as InfectionNewsItem);
+      });
+      setInfectionItems(items);
+      recentInfectionHeadlinesRef.current = items.map(i => i.title);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'real_infections');
     });
 
     return () => unsubscribe();
@@ -350,6 +372,63 @@ function App() {
       await setDoc(doc(db, 'signals', signal.id), signal);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'signals');
+    }
+  };
+
+  // Real-world Infection & Study News Fetching Logic (Surface Web Searches via Gemini Grounding)
+  const loadRealInfections = async () => {
+    console.log("Iniciando varredura na Surface Web por notícias reais de infecções e estudos...");
+    setIsLoadingInfections(true);
+    try {
+      const items = await fetchRealInfectionNews(recentInfectionHeadlinesRef.current);
+      if (items && items.length > 0) {
+        // Save fetched items to Firestore
+        for (const item of items) {
+          try {
+            await setDoc(doc(db, 'real_infections', item.id), item);
+          } catch (e) {
+            handleFirestoreError(e, OperationType.CREATE, 'real_infections');
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erro na busca de notícias reais de infecções:", error);
+    } finally {
+      setIsLoadingInfections(false);
+    }
+  };
+
+  // 5-Minute Interval for generating / fetching real news while active on the site
+  useEffect(() => {
+    // Initial fetch if the catalog is empty
+    if (infectionItems.length === 0) {
+      loadRealInfections();
+    }
+
+    // 5 minutes interval = 300,000 milliseconds
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+    const interval = setInterval(() => {
+      console.log("[5min Interval] Executando varredura periódica de notícias reais de infecções...");
+      loadRealInfections();
+    }, FIVE_MINUTES_MS);
+
+    return () => clearInterval(interval);
+  }, [infectionItems.length]);
+
+  // Admin Infection News Actions
+  const handleDeleteInfection = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'real_infections', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'real_infections');
+    }
+  };
+
+  const handleSaveInfection = async (item: InfectionNewsItem) => {
+    try {
+      await setDoc(doc(db, 'real_infections', item.id), item);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'real_infections');
     }
   };
 
@@ -848,6 +927,11 @@ function App() {
               onDeleteSignal={handleDeleteSignal}
               onUpdateSignal={handleUpdateSignal}
               onCreateSignal={handleCreateSignal}
+              infectionItems={infectionItems}
+              isLoadingInfections={isLoadingInfections}
+              onRefreshInfections={loadRealInfections}
+              onDeleteInfection={handleDeleteInfection}
+              onSaveInfection={handleSaveInfection}
             />
           </div>
         )}

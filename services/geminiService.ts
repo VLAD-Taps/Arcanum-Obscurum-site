@@ -569,3 +569,232 @@ Equipes de contenção foram avistadas isolando o perímetro. Recomendamos que a
 *A verdade está nas sombras.*`;
   }
 };
+
+// 9. Real Infections & Scientific Studies Live Surface Web Search (Google Search Grounding)
+export const fetchRealInfectionNews = async (
+  queryTopic: string = '',
+  categoryFilter: string = 'all'
+) => {
+  const fallbackInfections = [
+    {
+      id: "real_inf_1",
+      title: "Vigilância Genômica da Gripe Aviária H5N1: Transmissão em Mamíferos e Monitoramento Global",
+      source: "Nature Medicine / OMS",
+      url: "https://www.who.int/emergencies/disease-outbreak-news",
+      publishedDate: "Recente",
+      category: "surto",
+      pathogen: "Vírus Influenza A (H5N1)",
+      location: "Global / América do Norte / Europa",
+      summary: "Estudos recentes de sequenciamento genético monitoram mutações no vírus H5N1 após detecção em rebanhos leiteiros e mamíferos selvagens, com agências de saúde pública reforçando protocolos de biossegurança.",
+      keyFindings: [
+        "Aumento da vigilância em trabalhadores agrícolas e rebanhos",
+        "Análise de mutações na proteína hemaglutinina para avaliar risco de adaptação humana",
+        "Desenvolvimento e estocagem de vacinas candidatas por consórcios internacionais"
+      ],
+      createdAt: Date.now() - 3600000
+    },
+    {
+      id: "real_inf_2",
+      title: "Mpox Clado Ib: Dinâmica de Disseminação e Eficácia de Campanhas Vacinais",
+      source: "The Lancet Infectious Diseases / CDC",
+      url: "https://www.cdc.gov/poxvirus/mpox/",
+      publishedDate: "Recente",
+      category: "alerta_oms",
+      pathogen: "Orthopoxvirus (Mpox)",
+      location: "África Central / Internacional",
+      summary: "Pesquisas avaliam a transmissão e a resposta imunológica induzida pela vacina MVA-BN contra a variante Clado Ib, com reforço de medidas de contenção em pontos de entrada internacionais.",
+      keyFindings: [
+        "Identificação de vias de transmissão intradomiciliar e comunitária",
+        "Resultados positivos preliminares sobre imunogenicidade das vacinas",
+        "Recomendações da OMS para distribuição equitativa de insumos e testes diagnósticos"
+      ],
+      createdAt: Date.now() - 7200000
+    },
+    {
+      id: "real_inf_3",
+      title: "Superbactérias e Resistência a Carbapenêmicos: Nova Classe de Antibióticos em Fase Clínica",
+      source: "Science Translational Medicine",
+      url: "https://www.science.org/journal/scitranslmed",
+      publishedDate: "Estudo Recente",
+      category: "resistencia",
+      pathogen: "Klebsiella pneumoniae & Pseudomonas aeruginosa",
+      location: "Centros de Pesquisa Globais",
+      summary: "Novo estudo revela compostos sintéticos capazes de contornar mecanismos de efluxo e enzimas beta-lactamases em bactérias Gram-negativas multirresistentes.",
+      keyFindings: [
+        "Mecanismo de ação baseado na inibição da síntese de lipopolissacarídeos de membrana",
+        "Alta potência in vitro contra cepas resistentes a colistina",
+        "Avanço para testes clínicos de fase II para infecções hospitalares complexas"
+      ],
+      createdAt: Date.now() - 10800000
+    },
+    {
+      id: "real_inf_4",
+      title: "Candida auris: Mapeamento de Focos Hospitalares e Estratégias de Descontaminação",
+      source: "CDC Emerging Infectious Diseases",
+      url: "https://wwwnc.cdc.gov/eid",
+      publishedDate: "Alerta Ativo",
+      category: "mutacao",
+      pathogen: "Fungo Candida auris",
+      location: "Américas / Ásia / Europa",
+      summary: "Diretrizes atualizadas para controle de infecções fúngicas invasivas resistentes a equinocandinas e azóis em UTIs e unidades de longa permanência.",
+      keyFindings: [
+        "Capacidade persistente de colonização em superfícies hospitalares",
+        "Eficácia superior de desinfetantes à base de peróxido de hidrogênio vaporizado",
+        "Uso de testes de PCR multiplex para diagnóstico precoce em pacientes críticos"
+      ],
+      createdAt: Date.now() - 14400000
+    },
+    {
+      id: "real_inf_5",
+      title: "Vacinas de RNAm para Vírus Respiratórios Sazonais e Zoonóticos",
+      source: "New England Journal of Medicine (NEJM)",
+      url: "https://www.nejm.org",
+      publishedDate: "Publicação Científica",
+      category: "estudo",
+      pathogen: "Vírus Sincicial Respiratório (VSR) & Coronavírus",
+      location: "Internacional",
+      summary: "Ensaios clínicos demonstram durabilidade da resposta imune celular (células T CD8+) após imunização com formulações de nanopartículas lipídicas de nova geração.",
+      keyFindings: [
+        "Proteção cruzada estendida contra linhagens variantes",
+        "Redução significativa de hospitalizações em grupos de risco",
+        "Novos adjuvantes que reduzem a reatogenia e melhoram a estabilidade térmica"
+      ],
+      createdAt: Date.now() - 18000000
+    }
+  ];
+
+  try {
+    const ai = getAiClient();
+    if (!ai) return fallbackInfections;
+
+    let searchTopic = queryTopic.trim();
+    if (!searchTopic) {
+      if (categoryFilter === 'surto') searchTopic = 'surtos epidemiologicos recentes infecções virais oms cdc';
+      else if (categoryFilter === 'estudo') searchTopic = 'novos estudos cientificos infeccoes bacterias virus natureza the lancet';
+      else if (categoryFilter === 'alerta_oms') searchTopic = 'alertas organizacao mundial da saude oms epidemias recentes';
+      else if (categoryFilter === 'resistencia') searchTopic = 'resistencia antimicrobiana superbacterias novos antibioticos estudos';
+      else if (categoryFilter === 'mutacao') searchTopic = 'mutacao virus patogenos vigilância genomica';
+      else searchTopic = 'ultimas noticias sobre infeccoes virais surtos bacterianos doencas emergentes estudos cientificos recentes';
+    }
+
+    const prompt = `Realize uma busca em tempo real na surface web sobre notícias reais e estudos científicos recentes sobre infecções, surtos, vírus, superbactérias e epidemiologia médica.
+Busca: "${searchTopic}".
+
+Retorne um JSON Array puro contendo entre 4 a 6 notícias/estudos reais e recentes.
+Cada item deve ter a seguinte estrutura:
+[
+  {
+    "id": "inf_" + número_único,
+    "title": "Título informativo e claro da notícia ou estudo científico real",
+    "source": "Nome do veículo ou periódico (ex: Nature, The Lancet, OMS, CDC, Reuters, BBC, G1, etc.)",
+    "url": "URL da fonte original se identificada",
+    "publishedDate": "Data ou período da publicação",
+    "category": "surto" | "estudo" | "alerta_oms" | "resistencia" | "mutacao" | "outro",
+    "location": "Local ou alcance geográfico",
+    "pathogen": "Nome do vírus, bactéria, fungo ou doença em questão",
+    "summary": "Resumo objetivo e científico em português com 2 a 3 frases explicando o que aconteceu ou o que o estudo descobriu.",
+    "keyFindings": [
+      "Ponto chave 1 sobre a descoberta ou situação",
+      "Ponto chave 2 sobre dados clínicos ou medidas",
+      "Ponto chave 3 sobre impacto na saúde pública"
+    ]
+  }
+]
+
+REGRAS:
+1. Retorne APENAS o JSON Array puro (sem blocos markdown como \`\`\`json).
+2. As notícias devem ser REAIS, fundamentadas em fontes da surface web.
+3. Não invente ficção neste modo: este módulo é para jornalismo e ciência real.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        temperature: 0.3
+      }
+    });
+
+    // Extract grounding chunks if available
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const webLinks = groundingChunks
+      .map((chunk: any) => chunk.web)
+      .filter((web: any) => web && web.uri && web.title);
+
+    let text = response.text || "[]";
+    const cleanText = text.replace(/```json\n?|```/g, '').trim();
+    const parsed = JSON.parse(cleanText);
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((item: any, idx: number) => ({
+        ...item,
+        id: item.id || `inf_${Date.now()}_${idx}`,
+        createdAt: Date.now() - (idx * 60000),
+        groundingLinks: webLinks.length > 0 ? webLinks.slice(idx * 2, (idx + 1) * 2 + 1) : undefined
+      }));
+    }
+
+    return fallbackInfections;
+  } catch (error) {
+    console.warn("Busca de infecções na surface web falhou, utilizando catálogo base.", error);
+    return fallbackInfections;
+  }
+};
+
+// 10. Generate In-depth Scientific Report on a Real Infection / Study
+export const generateDetailedInfectionReport = async (item: any) => {
+  try {
+    const ai = getAiClient();
+    if (!ai) throw new Error("AI Client not initialized");
+
+    const prompt = `Escreva um dossiê epidemiológico e científico aprofundado em português sobre o seguinte estudo ou notícia real:
+    
+    Título: ${item.title}
+    Fonte: ${item.source}
+    Patógeno/Doença: ${item.pathogen || 'Não especificado'}
+    Localização: ${item.location || 'Global'}
+    Categoria: ${item.category}
+    Resumo Inicial: ${item.summary}
+
+    O relatório deve conter a seguinte estrutura em Markdown:
+    ## Visão Geral & Contexto Epidemiológico
+    (Explicação detalhada do cenário atual e da importância do patógeno)
+
+    ## Descobertas Científicas & Metodologia
+    (Dados sobre transmissão, mutações genéticas, resistência, respostas imunológicas ou testes clínicos)
+
+    ## Impacto na Saúde Pública & Recomendações
+    (Diretrizes de prevenção, vacinas, tratamentos e orientações das autoridades como OMS/CDC)
+
+    ## Fontes Verificadas & Leitura Recomendada
+    (Mencione os periódicos científicos e órgãos de saúde envolvidos)
+    
+    Mantenha um tom rigorosamente científico, informativo e acessível.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    return response.text;
+  } catch (error) {
+    console.error("Falha ao gerar dossiê científico", error);
+    return `## Dossiê Informativo: ${item.title}
+
+**Fonte Original:** ${item.source} | **Patógeno:** ${item.pathogen || 'N/A'} | **Localização:** ${item.location || 'Global'}
+
+### Resumo Executivo
+${item.summary}
+
+### Principais Pontos Observados
+${item.keyFindings?.map((k: string) => `- ${k}`).join('\n') || '- Monitoramento contínuo pelas autoridades de saúde pública.'}
+
+### Recomendações
+- Consulte sempre fontes oficiais como a Organização Mundial da Saúde (OMS) e o Ministério da Saúde para orientações atualizadas.
+- Mantenha esquemas vacinais atualizados conforme preconizado pelas diretrizes epidemiológicas.`;
+  }
+};
+
