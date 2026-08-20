@@ -87,7 +87,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (onUpdateBgPrefs) {
       onUpdateBgPrefs({
         enabled: true,
-        opacity: 55,
+        opacity: 85,
         blur: 0,
         customUrl: DEFAULT_BG_URL,
         dimOverlay: true,

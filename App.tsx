@@ -96,9 +96,21 @@ function App() {
   // Background Customization State (Removable / Configurable)
   const [bgPrefs, setBgPrefs] = useState<BackgroundPreferences>(() => {
     const saved = localStorage.getItem('arcanum_bg_prefs');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // If it had the old low opacity default (<= 60), bump it to 85 for better visibility
+        if (parsed.opacity && parsed.opacity <= 60) {
+          parsed.opacity = 85;
+        }
+        return parsed;
+      } catch (e) {
+        console.error("Error parsing bg prefs", e);
+      }
+    }
+    return {
       enabled: true,
-      opacity: 55,
+      opacity: 85,
       blur: 0,
       customUrl: '/arcanum_bg.jpg',
       dimOverlay: true,
@@ -570,9 +582,9 @@ function App() {
               filter: bgPrefs.blur > 0 ? `blur(${bgPrefs.blur}px)` : undefined,
             }}
           />
-          {/* Camada de Vinheta e Contraste para garantir legibilidade de todos os textos e cartões */}
+          {/* Camada de Vinheta e Contraste suave para garantir visibilidade da arte */}
           {bgPrefs.dimOverlay && (
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/40 to-black/75 dark:from-void/70 dark:via-void/80 dark:to-void pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/20 dark:from-void/40 dark:via-transparent dark:to-void/25 pointer-events-none" />
           )}
         </div>
       )}
